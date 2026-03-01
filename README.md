@@ -73,27 +73,7 @@ with requests.Session(impersonate='chrome136') as s:
     r = s.get('https://tls.peet.ws/api/all')
 ```
 
-**Available browsers:**
-- `chrome` (or specific: `chrome136`, `chrome140`, etc.)
-- `firefox` (or specific: `firefox139`, `firefox147`, etc.)
-- `safari` (or specific: `safari18`, `safariios18_1_1`, etc.)
-- `edge` (or specific: `edge145`, etc.)
-- `opera` (or specific: `opera119`, etc.)
-- `okhttp` (or specific: `okhttp5`, `okhttp4_12`, etc.)
-
-**Available OS:**
-- `windows`, `macos`, `linux`, `android`, `ios`
-
-You can also use rnet's native types directly:
-
-```python
-from rnet import Emulation, EmulationOS, EmulationOption
-
-with requests.Session(
-    impersonate=EmulationOption(Emulation.Chrome140, emulation_os=EmulationOS.Windows)
-) as s:
-    r = s.get('https://httpbin.org/get')
-```
+See [rnet documentation](https://github.com/0x676e67/rnet) for available browsers and OS options.
 
 ### Streaming
 
