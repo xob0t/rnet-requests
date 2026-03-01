@@ -45,15 +45,46 @@ async def main():
 asyncio.run(main())
 ```
 
-### Browser + OS Impersonation
+### Impersonation
+
+The main reason to use this library - bypass TLS fingerprinting:
 
 ```python
-# Browser: chrome, firefox, safari, edge, opera, okhttp
-# OS: windows, macos, linux, android, ios
+import rnet_requests as requests
 
+# Simple: just pass a browser name
+r = requests.get('https://tls.peet.ws/api/all', impersonate='chrome')
+
+# With OS fingerprint
 with requests.Session(impersonate='chrome', impersonate_os='windows') as s:
     r = s.get('https://tls.peet.ws/api/all')
     print(r.json()['tls']['ja3_hash'])
+
+# Specific version
+with requests.Session(impersonate='chrome136') as s:
+    r = s.get('https://tls.peet.ws/api/all')
+```
+
+**Available browsers:**
+- `chrome` (or specific: `chrome136`, `chrome140`, etc.)
+- `firefox` (or specific: `firefox139`, `firefox147`, etc.)
+- `safari` (or specific: `safari18`, `safariios18_1_1`, etc.)
+- `edge` (or specific: `edge145`, etc.)
+- `opera` (or specific: `opera119`, etc.)
+- `okhttp` (or specific: `okhttp5`, `okhttp4_12`, etc.)
+
+**Available OS:**
+- `windows`, `macos`, `linux`, `android`, `ios`
+
+You can also use rnet's native types directly:
+
+```python
+from rnet import Emulation, EmulationOS, EmulationOption
+
+with requests.Session(
+    impersonate=EmulationOption(Emulation.Chrome140, emulation_os=EmulationOS.Windows)
+) as s:
+    r = s.get('https://httpbin.org/get')
 ```
 
 ### Streaming
@@ -178,8 +209,6 @@ From requests:
 # import requests
 import rnet_requests as requests
 ```
-
-From curl_cffi:
 
 From curl_cffi:
 
