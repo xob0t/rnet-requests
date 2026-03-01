@@ -1006,9 +1006,8 @@ class TestStreaming:
         """Test streaming response as context manager."""
         from rnet_requests import Session
 
-        with Session() as s:
-            with s.get("https://httpbin.org/bytes/512", stream=True) as r:
-                assert r.status_code == 200
-                chunks = list(r.iter_content())
-                total_bytes = sum(len(chunk) for chunk in chunks)
-                assert total_bytes == 512
+        with Session() as s, s.get("https://httpbin.org/bytes/512", stream=True) as r:
+            assert r.status_code == 200
+            chunks = list(r.iter_content())
+            total_bytes = sum(len(chunk) for chunk in chunks)
+            assert total_bytes == 512
