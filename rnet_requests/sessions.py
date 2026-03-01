@@ -630,15 +630,13 @@ class Session:
                     filename = file_info[0]
                     content = file_info[1]
                     mime = file_info[2] if len(file_info) > 2 else None
-                    # Read file-like objects
-                    if hasattr(content, "read"):
-                        content = content.read()
+                    # Pass file-like objects directly to rnet for streaming
+                    # Don't call .read() - rnet handles streaming internally
                     parts.append(Part(name, content, filename=filename, mime=mime))
                 else:
                     # Direct file object or content
                     content = file_info
                     if hasattr(content, "read"):
-                        content = content.read()
                         # Try to get filename from file object
                         filename = getattr(file_info, "name", name)
                         if hasattr(filename, "__fspath__"):
@@ -647,6 +645,7 @@ class Session:
                             import os
 
                             filename = os.path.basename(filename)
+                        # Pass file handle directly for streaming
                         parts.append(Part(name, content, filename=filename))
                     else:
                         parts.append(Part(name, content))

@@ -43,8 +43,8 @@ class Multipart:
         *,
         content_type: str | None = None,
         filename: str | None = None,
-        local_path: str | bytes | Path | None = None,
-        data: bytes | None = None,
+        local_path: str | Path | None = None,
+        data: bytes | Any | None = None,
     ) -> None:
         """Add a part to the multipart form.
 
@@ -54,16 +54,17 @@ class Multipart:
             name: Name of the field.
             content_type: Content-Type for the field (e.g., "image/png").
             filename: Filename for the server.
-            local_path: Path to file on local disk to upload.
-            data: File content as bytes to upload.
+            local_path: Path to file on disk (streamed, not loaded into memory).
+            data: File content as bytes, string, or file-like object to upload.
+                  File-like objects are passed directly to rnet for streaming.
         """
         if local_path is not None and data is not None:
             raise ValueError("Cannot specify both local_path and data")
 
         if local_path is not None:
-            # Read file from disk
+            # Open file for streaming - don't read into memory
             path = Path(local_path)
-            data = path.read_bytes()
+            data = open(path, "rb")  # noqa: SIM115 - intentionally keep open for streaming
             if filename is None:
                 filename = path.name
 
@@ -92,6 +93,8 @@ class Multipart:
             if isinstance(data, str):
                 data = data.encode("utf-8")
 
+            # Pass file-like objects directly to rnet for streaming
+            # Don't call .read() - rnet handles streaming internally
             part = RnetPart(name, data, filename=filename, mime=content_type)
             parts.append(part)
 
@@ -108,6 +111,7 @@ class Multipart:
         - Simple values: {"field": "value"} or {"field": b"bytes"}
         - Tuples with filename: {"file": ("filename.txt", b"content")}
         - Tuples with content type: {"file": ("filename.txt", b"content", "text/plain")}
+        - File-like objects are passed directly for streaming (not loaded into memory)
 
         Args:
             fields: Dictionary of field names to values.
@@ -126,20 +130,16 @@ class Multipart:
                 else:
                     raise ValueError(f"Invalid tuple format for field {name}")
 
-                # Handle file-like objects
-                if hasattr(data, "read"):
-                    data = data.read()
-
+                # Pass file-like objects directly for streaming
+                # Don't call .read() - rnet handles streaming internally
                 mp.addpart(
                     name, filename=filename, data=data, content_type=content_type
                 )
             else:
-                # Simple value
+                # Simple value - pass directly (file handles will stream)
                 data = value
                 if isinstance(data, str):
                     data = data.encode("utf-8")
-                elif hasattr(data, "read"):
-                    data = data.read()
                 mp.addpart(name, data=data)
 
         return mp
@@ -155,10 +155,10 @@ class Multipart:
 
         Each dict can contain:
         - name: Field name (required)
-        - data: Content as bytes or str
+        - data: Content as bytes, str, or file-like object (streamed)
         - filename: Filename for the server
         - content_type: MIME type (e.g., "image/png")
-        - local_path: Path to file on disk (alternative to data)
+        - local_path: Path to file on disk (streamed, not loaded into memory)
 
         Args:
             parts: List of dictionaries describing each part.
@@ -188,9 +188,8 @@ class Multipart:
             if isinstance(data, str):
                 data = data.encode("utf-8")
 
-            # Handle file-like objects
-            if data is not None and hasattr(data, "read"):
-                data = data.read()
+            # Pass file-like objects directly for streaming
+            # Don't call .read() - rnet handles streaming internally
 
             mp.addpart(
                 name,
