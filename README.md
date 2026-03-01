@@ -7,7 +7,15 @@ rnet is a Rust-based HTTP client with TLS fingerprint impersonation. This wrappe
 ## Install
 
 ```bash
-pip install rnet-requests
+pip install git+https://github.com/user/rnet-requests.git
+```
+
+Or clone and install locally:
+
+```bash
+git clone https://github.com/user/rnet-requests.git
+cd rnet-requests
+pip install -e .
 ```
 
 ## Usage
