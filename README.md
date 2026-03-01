@@ -2,7 +2,7 @@
 
 Drop-in replacement for `requests` and `curl_cffi` using [rnet](https://github.com/0x676e67/rnet) as the backend.
 
-rnet is a Rust-based HTTP client with TLS fingerprint impersonation. This wrapper gives you a familiar Python API.
+rnet is a Python HTTP client powered by a Rust backend (wreq), with TLS/JA3/JA4/HTTP2 fingerprint emulation. This wrapper gives you a familiar `requests`-style API.
 
 ## Install
 
