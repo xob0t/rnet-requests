@@ -8,7 +8,7 @@ This module contains the primary objects that power rnet-requests.
 from __future__ import annotations
 
 import json as _json
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -287,6 +287,11 @@ class Response:
         # Internal: rnet response object
         self._rnet_response: Any | None = None
 
+        # Streaming support
+        self._is_stream: bool = False
+        self._streamer: Any | None = None
+        self._stream_consumed: bool = False
+
     def __repr__(self) -> str:
         return f"<Response [{self.status_code}]>"
 
@@ -344,7 +349,22 @@ class Response:
 
     @property
     def content(self) -> bytes:
-        """Content of the response, in bytes."""
+        """Content of the response, in bytes.
+
+        If the response was created with stream=True and the stream hasn't
+        been consumed yet, this will consume the entire stream and cache
+        the result.
+        """
+        # If streaming and not yet consumed, consume the stream now
+        if self._is_stream and not self._stream_consumed and self._streamer is not None:
+            chunks = []
+            try:
+                for chunk in self._streamer:
+                    chunks.append(chunk)
+            finally:
+                self._stream_consumed = True
+            self._content = b"".join(chunks)
+
         if self._content is None:
             self._content = b""
         return self._content
@@ -417,24 +437,42 @@ class Response:
             raise HTTPError(http_error_msg, response=self)
 
     def iter_content(
-        self, chunk_size: int = 1, decode_unicode: bool = False
+        self, chunk_size: int | None = None, decode_unicode: bool = False
     ) -> Iterator[bytes]:
         """Iterates over the response data.
 
         When stream=True is set on the request, this avoids reading the
         content at once into memory for large responses.
 
-        :param chunk_size: Number of bytes to read at a time.
+        :param chunk_size: Number of bytes to read at a time. Note: This is
+            advisory only for streaming - the actual chunk size depends on
+            the server and network conditions.
         :param decode_unicode: If True, content will be decoded using the best
             available encoding based on the response.
         """
+        if decode_unicode:
+            raise NotImplementedError("decode_unicode is not supported")
+
+        # True streaming mode
+        if self._is_stream and self._streamer is not None and not self._stream_consumed:
+            try:
+                for chunk in self._streamer:
+                    if chunk:  # Skip empty chunks
+                        if chunk_size and len(chunk) > chunk_size:
+                            # Split large chunks if chunk_size specified
+                            for i in range(0, len(chunk), chunk_size):
+                                yield chunk[i : i + chunk_size]
+                        else:
+                            yield chunk
+            finally:
+                self._stream_consumed = True
+            return
+
+        # Fallback: iterate over already-loaded content
         content = self.content
-        for i in range(0, len(content), chunk_size):
-            chunk = content[i : i + chunk_size]
-            if decode_unicode:
-                yield chunk.decode(self.encoding or "utf-8", errors="replace").encode()
-            else:
-                yield chunk
+        effective_chunk_size = chunk_size or 512
+        for i in range(0, len(content), effective_chunk_size):
+            yield content[i : i + effective_chunk_size]
 
     def iter_lines(
         self,
@@ -472,10 +510,107 @@ class Response:
         if pending:
             yield pending
 
+    async def aiter_content(
+        self, chunk_size: int | None = None, decode_unicode: bool = False
+    ) -> AsyncIterator[bytes]:
+        """Async iterator over the response data.
+
+        When stream=True is set on the request, this avoids reading the
+        content at once into memory for large responses.
+
+        :param chunk_size: Number of bytes to read at a time. Note: This is
+            advisory only for streaming - the actual chunk size depends on
+            the server and network conditions.
+        :param decode_unicode: If True, content will be decoded using the best
+            available encoding based on the response.
+        """
+        if decode_unicode:
+            raise NotImplementedError("decode_unicode is not supported")
+
+        # True streaming mode
+        if self._is_stream and self._streamer is not None and not self._stream_consumed:
+            try:
+                async for chunk in self._streamer:
+                    if chunk:  # Skip empty chunks
+                        if chunk_size and len(chunk) > chunk_size:
+                            # Split large chunks if chunk_size specified
+                            for i in range(0, len(chunk), chunk_size):
+                                yield chunk[i : i + chunk_size]
+                        else:
+                            yield chunk
+            finally:
+                self._stream_consumed = True
+            return
+
+        # Fallback: iterate over already-loaded content
+        content = self.content
+        effective_chunk_size = chunk_size or 512
+        for i in range(0, len(content), effective_chunk_size):
+            yield content[i : i + effective_chunk_size]
+
+    async def aiter_lines(
+        self,
+        chunk_size: int = 512,
+        decode_unicode: bool = False,
+        delimiter: str | bytes | None = None,
+    ) -> AsyncIterator[bytes]:
+        """Async iterator over the response data, one line at a time.
+
+        When stream=True is set on the request, this avoids reading the
+        content at once into memory for large responses.
+
+        :param chunk_size: Number of bytes to read at a time.
+        :param decode_unicode: If True, content will be decoded using the best
+            available encoding based on the response.
+        :param delimiter: The line delimiter.
+        """
+        pending = b""
+
+        if delimiter is None:
+            delimiter = b"\n"
+        elif isinstance(delimiter, str):
+            delimiter = delimiter.encode()
+
+        async for chunk in self.aiter_content(
+            chunk_size=chunk_size, decode_unicode=decode_unicode
+        ):
+            pending += chunk
+            lines = pending.split(delimiter)
+
+            for line in lines[:-1]:
+                yield line
+
+            pending = lines[-1]
+
+        if pending:
+            yield pending
+
+    async def atext(self) -> str:
+        """Return a decoded string (async version for streaming)."""
+        chunks = []
+        async for chunk in self.aiter_content():
+            chunks.append(chunk)
+        content = b"".join(chunks)
+        return content.decode(self.encoding or "utf-8", errors="replace")
+
+    async def acontent(self) -> bytes:
+        """Return full content as bytes (async version for streaming)."""
+        chunks = []
+        async for chunk in self.aiter_content():
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+    async def aclose(self) -> None:
+        """Async close for streaming responses."""
+        self._stream_consumed = True
+        if self._rnet_response and hasattr(self._rnet_response, "close"):
+            self._rnet_response.close()
+
     def close(self) -> None:
         """Releases the connection back to the pool."""
-        # rnet handles connection pooling internally
-        pass
+        self._stream_consumed = True
+        if self._rnet_response and hasattr(self._rnet_response, "close"):
+            self._rnet_response.close()
 
     @classmethod
     def from_rnet_response(

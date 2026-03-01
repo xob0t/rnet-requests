@@ -641,20 +641,32 @@ class AsyncSession:
             # Get cookies before consuming
             cookies_list = list(rnet_resp.cookies)
 
-            # Read the response content (consumes the response body)
-            content = await rnet_resp.bytes()
+            # Handle streaming vs non-streaming
+            if stream:
+                # Streaming mode: don't consume body, store streamer
+                content = b""
+                streamer = rnet_resp.stream()
+            else:
+                # Read the response content (consumes the response body)
+                content = await rnet_resp.bytes()
+                streamer = None
 
             # Determine encoding
             effective_encoding = default_encoding or self.default_encoding
-            if callable(effective_encoding):
+            if callable(effective_encoding) and not stream:
                 final_encoding = effective_encoding(content)
+            elif isinstance(effective_encoding, str):
+                final_encoding = effective_encoding
             else:
-                final_encoding = effective_encoding or encoding
+                final_encoding = encoding
 
             # Create our Response object from metadata + content
             response = Response()
-            response._content = content
-            response._content_consumed = True
+            response._content = content if not stream else None
+            response._content_consumed = not stream
+            response._is_stream = stream
+            response._streamer = streamer
+            response._rnet_response = rnet_resp
             response.status_code = status
             response.url = url_final
             response.encoding = final_encoding

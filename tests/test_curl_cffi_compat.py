@@ -875,3 +875,140 @@ class TestDefaultHeaders:
         with Session(default_headers=False) as s:
             r = s.get("https://httpbin.org/headers")
             assert r.status_code == 200
+
+
+class TestStreaming:
+    """Test response streaming support."""
+
+    def test_stream_iter_content(self):
+        """Test stream=True with iter_content()."""
+        from rnet_requests import Session
+
+        with Session() as s:
+            # Request 1KB of random bytes
+            r = s.get("https://httpbin.org/bytes/1024", stream=True)
+            assert r.status_code == 200
+
+            chunks = list(r.iter_content(chunk_size=256))
+            total_bytes = sum(len(chunk) for chunk in chunks)
+            assert total_bytes == 1024
+
+    def test_stream_iter_lines(self):
+        """Test stream=True with iter_lines()."""
+        from rnet_requests import Session
+
+        with Session() as s:
+            # Request 10 lines of data
+            r = s.get("https://httpbin.org/stream/10", stream=True)
+            assert r.status_code == 200
+
+            lines = list(r.iter_lines())
+            # Should have at least 10 lines (may have more due to chunking)
+            assert len(lines) >= 10
+
+    def test_stream_content_property_consumes(self):
+        """Test that accessing .content on stream consumes it."""
+        from rnet_requests import Session
+
+        with Session() as s:
+            r = s.get("https://httpbin.org/bytes/512", stream=True)
+            assert r.status_code == 200
+            assert r._is_stream is True
+            assert r._stream_consumed is False
+
+            # Accessing content should consume the stream
+            content = r.content
+            assert len(content) == 512
+            assert r._stream_consumed is True
+
+    def test_non_stream_iter_content(self):
+        """Test iter_content() without stream=True."""
+        from rnet_requests import Session
+
+        with Session() as s:
+            r = s.get("https://httpbin.org/bytes/256")
+            assert r.status_code == 200
+            assert r._is_stream is False
+
+            chunks = list(r.iter_content(chunk_size=64))
+            total_bytes = sum(len(chunk) for chunk in chunks)
+            assert total_bytes == 256
+
+    @pytest.mark.asyncio
+    async def test_async_stream_aiter_content(self):
+        """Test async stream=True with aiter_content()."""
+        from rnet_requests import AsyncSession
+
+        async with AsyncSession() as s:
+            r = await s.get("https://httpbin.org/bytes/1024", stream=True)
+            assert r.status_code == 200
+
+            chunks = []
+            async for chunk in r.aiter_content(chunk_size=256):
+                chunks.append(chunk)
+
+            total_bytes = sum(len(chunk) for chunk in chunks)
+            assert total_bytes == 1024
+
+    @pytest.mark.asyncio
+    async def test_async_stream_aiter_lines(self):
+        """Test async stream=True with aiter_lines()."""
+        from rnet_requests import AsyncSession
+
+        async with AsyncSession() as s:
+            r = await s.get("https://httpbin.org/stream/10", stream=True)
+            assert r.status_code == 200
+
+            lines = []
+            async for line in r.aiter_lines():
+                lines.append(line)
+
+            # Should have at least 10 lines
+            assert len(lines) >= 10
+
+    @pytest.mark.asyncio
+    async def test_async_stream_atext(self):
+        """Test async atext() method for streaming."""
+        from rnet_requests import AsyncSession
+
+        async with AsyncSession() as s:
+            r = await s.get("https://httpbin.org/get", stream=True)
+            assert r.status_code == 200
+
+            text = await r.atext()
+            assert "httpbin.org" in text
+
+    @pytest.mark.asyncio
+    async def test_async_stream_acontent(self):
+        """Test async acontent() method for streaming."""
+        from rnet_requests import AsyncSession
+
+        async with AsyncSession() as s:
+            r = await s.get("https://httpbin.org/bytes/256", stream=True)
+            assert r.status_code == 200
+
+            content = await r.acontent()
+            assert len(content) == 256
+
+    def test_stream_close(self):
+        """Test close() on streaming response."""
+        from rnet_requests import Session
+
+        with Session() as s:
+            r = s.get("https://httpbin.org/bytes/1024", stream=True)
+            assert r.status_code == 200
+
+            # Close without consuming
+            r.close()
+            assert r._stream_consumed is True
+
+    def test_stream_context_manager(self):
+        """Test streaming response as context manager."""
+        from rnet_requests import Session
+
+        with Session() as s:
+            with s.get("https://httpbin.org/bytes/512", stream=True) as r:
+                assert r.status_code == 200
+                chunks = list(r.iter_content())
+                total_bytes = sum(len(chunk) for chunk in chunks)
+                assert total_bytes == 512
