@@ -7,13 +7,13 @@ rnet is a Python HTTP client powered by a Rust backend (wreq), with TLS/JA3/JA4/
 ## Install
 
 ```bash
-pip install git+https://github.com/user/rnet-requests.git
+pip install https://github.com/xob0t/rnet-requests/archive/refs/heads/main.zip
 ```
 
 Or clone and install locally:
 
 ```bash
-git clone https://github.com/user/rnet-requests.git
+git clone https://github.com/xob0t/rnet-requests.git
 cd rnet-requests
 pip install -e .
 ```
