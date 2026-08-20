@@ -146,7 +146,7 @@ class TestImpersonation:
 
     def test_impersonate_with_enum(self):
         """Test impersonation with enum."""
-        from rnet import Emulation
+        from wreq import Emulation
 
         import rnet_requests as requests
 

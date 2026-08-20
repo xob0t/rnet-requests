@@ -10,8 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from rnet import Multipart as RnetMultipart
-from rnet import Part as RnetPart
+from wreq import Multipart as RnetMultipart
+from wreq import Part as RnetPart
 
 
 class Multipart:
@@ -33,9 +33,9 @@ class Multipart:
         ... })
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an empty Multipart form."""
-        self._parts: list[tuple[str, Any]] = []
+        self._parts: list[dict[str, Any]] = []
 
     def addpart(
         self,
@@ -56,7 +56,7 @@ class Multipart:
             filename: Filename for the server.
             local_path: Path to file on disk (streamed, not loaded into memory).
             data: File content as bytes, string, or file-like object to upload.
-                  File-like objects are passed directly to rnet for streaming.
+                  File-like objects are passed directly to wreq for streaming.
         """
         if local_path is not None and data is not None:
             raise ValueError("Cannot specify both local_path and data")
@@ -78,7 +78,7 @@ class Multipart:
         )
 
     def _to_rnet_multipart(self) -> RnetMultipart:
-        """Convert to rnet Multipart object."""
+        """Convert to a wreq Multipart object."""
         parts = []
         for part_info in self._parts:
             name = part_info["name"]
@@ -93,8 +93,7 @@ class Multipart:
             if isinstance(data, str):
                 data = data.encode("utf-8")
 
-            # Pass file-like objects directly to rnet for streaming
-            # Don't call .read() - rnet handles streaming internally
+            # Pass file-like objects directly to wreq for streaming.
             part = RnetPart(name, data, filename=filename, mime=content_type)
             parts.append(part)
 
@@ -103,7 +102,7 @@ class Multipart:
     @classmethod
     def from_dict(
         cls,
-        fields: dict,
+        fields: dict[str, Any],
     ) -> Multipart:
         """Create a Multipart from a dictionary.
 
@@ -131,7 +130,7 @@ class Multipart:
                     raise ValueError(f"Invalid tuple format for field {name}")
 
                 # Pass file-like objects directly for streaming
-                # Don't call .read() - rnet handles streaming internally
+                # wreq streams file-like values itself.
                 mp.addpart(
                     name, filename=filename, data=data, content_type=content_type
                 )
@@ -189,7 +188,7 @@ class Multipart:
                 data = data.encode("utf-8")
 
             # Pass file-like objects directly for streaming
-            # Don't call .read() - rnet handles streaming internally
+            # wreq streams file-like values itself.
 
             mp.addpart(
                 name,

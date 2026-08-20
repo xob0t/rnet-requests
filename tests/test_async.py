@@ -206,7 +206,7 @@ class TestAsyncImpersonation:
 
     async def test_async_impersonate_with_enum(self):
         """Test async impersonation with enum."""
-        from rnet import Emulation
+        from wreq import Emulation
 
         from rnet_requests import AsyncSession
 

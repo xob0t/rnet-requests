@@ -130,12 +130,12 @@ class Cookies(MutableMapping[str, str]):
             discard=True,
             comment=None,
             comment_url=None,
-            rest={"HttpOnly": None},
+            rest={"HttpOnly": ""},
             rfc2109=False,
         )
         self.jar.set_cookie(cookie)
 
-    def get(
+    def get(  # type: ignore[override]
         self,
         name: str,
         default: str | None = None,
@@ -159,7 +159,9 @@ class Cookies(MutableMapping[str, str]):
             return default
         return value
 
-    def get_dict(self, domain: str | None = None, path: str | None = None) -> dict:
+    def get_dict(
+        self, domain: str | None = None, path: str | None = None
+    ) -> dict[str, str]:
         """
         Get cookies as a dictionary.
 
@@ -167,8 +169,11 @@ class Cookies(MutableMapping[str, str]):
         """
         ret = {}
         for cookie in self.jar:
-            if (domain is None or cookie.domain == domain) and (
-                path is None or cookie.path == path
+            if (
+                cookie.name is not None
+                and cookie.value is not None
+                and (domain is None or cookie.domain == domain)
+                and (path is None or cookie.path == path)
             ):
                 ret[cookie.name] = cookie.value
         return ret

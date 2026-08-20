@@ -4,38 +4,38 @@ rnet_requests.impersonate
 
 Browser impersonation (emulation) types and utilities, compatible with curl_cffi.
 
-In rnet v3, "Impersonate" is renamed to "Emulation". This module provides
-compatibility aliases and dynamic version detection.
+This module adapts wreq's Profile, Platform, and Emulation types to the
+curl_cffi-compatible names exposed by rnet-requests.
 """
 
 import re
 from enum import StrEnum
 from typing import Literal
 
-from rnet import Emulation as RnetEmulation
-from rnet import EmulationOption as RnetEmulationOption
-from rnet import EmulationOS as RnetEmulationOS
+from wreq import Emulation as WreqEmulation
+from wreq import Platform as WreqPlatform
+from wreq import Profile as WreqProfile
 
-# Re-export rnet's classes with both old and new names for compatibility
-Emulation = RnetEmulation
-EmulationOS = RnetEmulationOS
-EmulationOption = RnetEmulationOption
+# Re-export wreq's classes under the names used by earlier rnet releases.
+Emulation = WreqEmulation
+EmulationOS = WreqPlatform
+EmulationOption = WreqEmulation
 
 # Aliases for backward compatibility with rnet v2 naming
-Impersonate = RnetEmulation
-ImpersonateOS = RnetEmulationOS
-ImpersonateOption = RnetEmulationOption
+Impersonate = WreqEmulation
+ImpersonateOS = WreqPlatform
+ImpersonateOption = WreqEmulation
 
 
-def _get_latest_versions() -> dict[str, tuple[str, RnetEmulation]]:
+def _get_latest_versions() -> dict[str, tuple[str, WreqProfile]]:
     """
     Dynamically determine the latest version for each browser family
-    by inspecting the rnet Emulation enum.
+    by inspecting wreq's Profile enum.
 
     Returns a dict mapping browser family name to (enum_name, Emulation value).
     """
     # Get all enum member names
-    all_names = [name for name in dir(RnetEmulation) if not name.startswith("_")]
+    all_names = [name for name in dir(WreqProfile) if not name.startswith("_")]
 
     # Browser family patterns - match family name and extract version number
     families = {
@@ -47,7 +47,7 @@ def _get_latest_versions() -> dict[str, tuple[str, RnetEmulation]]:
         "okhttp": re.compile(r"^OkHttp(\d+(?:_\d+)?)$"),
     }
 
-    latest: dict[str, tuple[str, str, RnetEmulation]] = {}
+    latest: dict[str, tuple[str, str, WreqProfile]] = {}
 
     for name in all_names:
         for family, pattern in families.items():
@@ -58,7 +58,7 @@ def _get_latest_versions() -> dict[str, tuple[str, RnetEmulation]]:
                 version_parts = tuple(int(p) for p in version_str.split("_"))
 
                 if family not in latest:
-                    latest[family] = (version_str, name, getattr(RnetEmulation, name))
+                    latest[family] = (version_str, name, getattr(WreqProfile, name))
                 else:
                     # Compare versions
                     existing_version = tuple(
@@ -68,14 +68,14 @@ def _get_latest_versions() -> dict[str, tuple[str, RnetEmulation]]:
                         latest[family] = (
                             version_str,
                             name,
-                            getattr(RnetEmulation, name),
+                            getattr(WreqProfile, name),
                         )
                 break
 
     return {family: (name, imp) for family, (_, name, imp) in latest.items()}
 
 
-def _build_emulation_map() -> dict[str, RnetEmulation]:
+def _build_emulation_map() -> dict[str, WreqProfile]:
     """
     Build a mapping from string names to Emulation enum values.
 
@@ -83,7 +83,7 @@ def _build_emulation_map() -> dict[str, RnetEmulation]:
     - All specific versions (e.g., "chrome137", "firefox139")
     - Generic family names pointing to latest (e.g., "chrome" -> Chrome137)
     """
-    result: dict[str, RnetEmulation] = {}
+    result: dict[str, WreqProfile] = {}
 
     # Get latest versions for generic names
     latest_versions = _get_latest_versions()
@@ -93,19 +93,19 @@ def _build_emulation_map() -> dict[str, RnetEmulation]:
         result[family] = imp
 
     # Add all specific versions from the enum
-    all_names = [name for name in dir(RnetEmulation) if not name.startswith("_")]
+    all_names = [name for name in dir(WreqProfile) if not name.startswith("_")]
 
     for name in all_names:
         # Convert CamelCase to lowercase (e.g., "Chrome137" -> "chrome137")
         key = name.lower()
         # Handle underscores in Safari versions (e.g., "Safari18_5" -> "safari18_5")
-        result[key] = getattr(RnetEmulation, name)
+        result[key] = getattr(WreqProfile, name)
 
     return result
 
 
 # Build the emulation map dynamically
-EMULATION_MAP: dict[str, RnetEmulation] = _build_emulation_map()
+EMULATION_MAP: dict[str, WreqProfile] = _build_emulation_map()
 
 # Alias for backward compatibility
 IMPERSONATE_MAP = EMULATION_MAP
@@ -132,17 +132,17 @@ OSTypeLiteral = Literal[
 ]
 
 # Map from string to EmulationOS
-OS_MAP: dict[str, RnetEmulationOS] = {
-    "windows": RnetEmulationOS.Windows,
-    "win": RnetEmulationOS.Windows,
-    "macos": RnetEmulationOS.MacOS,
-    "mac": RnetEmulationOS.MacOS,
-    "osx": RnetEmulationOS.MacOS,
-    "linux": RnetEmulationOS.Linux,
-    "android": RnetEmulationOS.Android,
-    "ios": RnetEmulationOS.IOS,
-    "iphone": RnetEmulationOS.IOS,
-    "ipad": RnetEmulationOS.IOS,
+OS_MAP: dict[str, WreqPlatform] = {
+    "windows": WreqPlatform.Windows,
+    "win": WreqPlatform.Windows,
+    "macos": WreqPlatform.MacOS,
+    "mac": WreqPlatform.MacOS,
+    "osx": WreqPlatform.MacOS,
+    "linux": WreqPlatform.Linux,
+    "android": WreqPlatform.Android,
+    "ios": WreqPlatform.IOS,
+    "iphone": WreqPlatform.IOS,
+    "ipad": WreqPlatform.IOS,
 }
 
 
@@ -208,13 +208,13 @@ def normalize_browser_type(item: str) -> str:
 
 
 def resolve_os(
-    os: str | OSType | RnetEmulationOS | None,
-) -> RnetEmulationOS | None:
-    """Resolve OS value to rnet EmulationOS enum.
+    os: str | OSType | WreqPlatform | None,
+) -> WreqPlatform | None:
+    """Resolve an OS value to wreq's Platform enum.
 
     Args:
         os: OS to emulate. Can be a string like 'windows', 'macos', 'linux',
-            'android', 'ios', an OSType enum, or an rnet EmulationOS value.
+            'android', 'ios', an OSType enum, or a wreq Platform value.
 
     Returns:
         The resolved EmulationOS value, or None if os is None.
@@ -225,7 +225,7 @@ def resolve_os(
     if os is None:
         return None
 
-    if isinstance(os, RnetEmulationOS):
+    if isinstance(os, WreqPlatform):
         return os
 
     if isinstance(os, OSType):
@@ -243,13 +243,13 @@ def resolve_os(
 
 
 def resolve_emulation(
-    emulation: str | BrowserType | RnetEmulation | None,
-) -> RnetEmulation | None:
-    """Resolve emulation value to rnet Emulation enum.
+    emulation: str | BrowserType | WreqProfile | WreqEmulation | None,
+) -> WreqProfile | WreqEmulation | None:
+    """Resolve an emulation value to a wreq Profile or Emulation.
 
     Args:
         emulation: Browser to emulate. Can be a string like 'chrome',
-            a BrowserType enum, or an rnet Emulation enum value.
+            a BrowserType enum, or a wreq Profile or Emulation value.
 
     Returns:
         The resolved Emulation value, or None if emulation is None.
@@ -260,7 +260,7 @@ def resolve_emulation(
     if emulation is None:
         return None
 
-    if isinstance(emulation, RnetEmulation):
+    if isinstance(emulation, (WreqProfile, WreqEmulation)):
         return emulation
 
     if isinstance(emulation, BrowserType):
@@ -299,11 +299,11 @@ resolve_impersonate = resolve_emulation
 
 
 def create_emulation_option(
-    emulation: str | BrowserType | RnetEmulation | None = None,
-    os: str | OSType | RnetEmulationOS | None = None,
+    emulation: str | BrowserType | WreqProfile | WreqEmulation | None = None,
+    os: str | OSType | WreqPlatform | None = None,
     skip_http2: bool | None = None,
     skip_headers: bool | None = None,
-) -> RnetEmulationOption | RnetEmulation | None:
+) -> WreqEmulation | WreqProfile | None:
     """Create an EmulationOption with browser and OS settings.
 
     Args:
@@ -324,13 +324,17 @@ def create_emulation_option(
 
     resolved_os = resolve_os(os)
 
+    # A complete wreq Emulation already contains its platform and feature flags.
+    if isinstance(resolved_emulation, WreqEmulation):
+        return resolved_emulation
+
     # If we have additional options, create EmulationOption
     if resolved_os is not None or skip_http2 is not None or skip_headers is not None:
-        return RnetEmulationOption(
-            resolved_emulation,
-            emulation_os=resolved_os,
-            skip_http2=skip_http2,
-            skip_headers=skip_headers,
+        return WreqEmulation(
+            profile=resolved_emulation,
+            platform=resolved_os or WreqPlatform.MacOS,
+            http2=not bool(skip_http2),
+            headers=not bool(skip_headers),
         )
 
     # Otherwise just return the emulation enum

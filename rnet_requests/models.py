@@ -7,6 +7,7 @@ This module contains the primary objects that power rnet-requests.
 
 from __future__ import annotations
 
+import inspect
 import json as _json
 from collections.abc import AsyncIterator, Iterator
 from typing import (
@@ -23,8 +24,8 @@ from .exceptions import (
 from .structures import CaseInsensitiveDict
 
 if TYPE_CHECKING:
-    from rnet import Response as RnetResponse
-    from rnet.blocking import BlockingResponse as RnetBlockingResponse
+    from wreq import Response as RnetResponse
+    from wreq.blocking import Response as RnetBlockingResponse
 
 
 class Request:
@@ -237,7 +238,7 @@ class Response:
     """The :class:`Response <Response>` object, which contains a
     server's response to an HTTP request.
 
-    This class wraps rnet's Response to provide a requests-compatible interface.
+    This class wraps wreq's Response to provide a requests-compatible interface.
     """
 
     def __init__(self) -> None:
@@ -284,8 +285,9 @@ class Response:
         #: is a response.
         self.request: PreparedRequest | None = None
 
-        # Internal: rnet response object
+        # Internal wreq response object.
         self._rnet_response: Any | None = None
+        self._session: Any | None = None
 
         # Streaming support
         self._is_stream: bool = False
@@ -309,6 +311,12 @@ class Response:
 
     def __exit__(self, *args: Any) -> None:
         self.close()
+
+    async def __aenter__(self) -> Response:
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        await self.aclose()
 
     def __iter__(self) -> Iterator[bytes]:
         """Allows you to iterate over the response content."""
@@ -360,7 +368,8 @@ class Response:
             chunks = []
             try:
                 for chunk in self._streamer:
-                    chunks.append(chunk)
+                    if isinstance(chunk, bytes):
+                        chunks.append(chunk)
             finally:
                 self._stream_consumed = True
             self._content = b"".join(chunks)
@@ -457,7 +466,7 @@ class Response:
         if self._is_stream and self._streamer is not None and not self._stream_consumed:
             try:
                 for chunk in self._streamer:
-                    if chunk:  # Skip empty chunks
+                    if isinstance(chunk, bytes) and chunk:
                         if chunk_size and len(chunk) > chunk_size:
                             # Split large chunks if chunk_size specified
                             for i in range(0, len(chunk), chunk_size):
@@ -531,7 +540,7 @@ class Response:
         if self._is_stream and self._streamer is not None and not self._stream_consumed:
             try:
                 async for chunk in self._streamer:
-                    if chunk:  # Skip empty chunks
+                    if isinstance(chunk, bytes) and chunk:
                         if chunk_size and len(chunk) > chunk_size:
                             # Split large chunks if chunk_size specified
                             for i in range(0, len(chunk), chunk_size):
@@ -604,13 +613,27 @@ class Response:
         """Async close for streaming responses."""
         self._stream_consumed = True
         if self._rnet_response and hasattr(self._rnet_response, "close"):
-            self._rnet_response.close()
+            result = self._rnet_response.close()
+            if inspect.isawaitable(result):
+                await result
+        if self._session is not None:
+            result = self._session.close()
+            if inspect.isawaitable(result):
+                await result
+            self._session = None
 
     def close(self) -> None:
         """Releases the connection back to the pool."""
         self._stream_consumed = True
         if self._rnet_response and hasattr(self._rnet_response, "close"):
-            self._rnet_response.close()
+            close = self._rnet_response.close
+            if not inspect.iscoroutinefunction(close):
+                close()
+        if self._session is not None:
+            close = self._session.close
+            if not inspect.iscoroutinefunction(close):
+                close()
+                self._session = None
 
     @classmethod
     def from_rnet_response(
@@ -619,9 +642,9 @@ class Response:
         content: bytes,
         text: str | None = None,
     ) -> Response:
-        """Create a Response from an rnet response object.
+        """Create a Response from a wreq response object.
 
-        Note: This method is updated for rnet v3 API compatibility.
+        This method handles wreq's current response API.
         """
         response = cls()
         response._rnet_response = rnet_resp
@@ -629,14 +652,14 @@ class Response:
         response._text = text
         response._content_consumed = True
 
-        # rnet v3: status is a StatusCode object, use .as_int()
+        # wreq status is a StatusCode object, use .as_int().
         response.status_code = rnet_resp.status.as_int()
         response.url = rnet_resp.url
         response.encoding = (
             rnet_resp.encoding if hasattr(rnet_resp, "encoding") else None
         )
 
-        # Convert headers (rnet v3: HeaderMap uses keys()/get())
+        # Convert wreq's HeaderMap via keys() and get().
         response.headers = CaseInsensitiveDict()
         for key in rnet_resp.headers.keys():  # noqa: SIM118
             key_str = key.decode("utf-8") if isinstance(key, bytes) else str(key)

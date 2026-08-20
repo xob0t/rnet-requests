@@ -21,15 +21,15 @@ from typing import (
 )
 from urllib.parse import urljoin, urlparse
 
-from rnet import (
+from wreq import (
     Identity,
     Method,
     Part,
     Proxy,
     Version,
 )
-from rnet import Multipart as RnetMultipart
-from rnet.redirect import Policy
+from wreq import Multipart as RnetMultipart
+from wreq.redirect import Policy
 
 from .cookies import Cookies
 from .exceptions import (
@@ -105,7 +105,7 @@ def normalize_retry(retry: int | RetryStrategy | None) -> RetryStrategy:
 def resolve_http_version(
     version: Version | HttpVersionLiteral | None,
 ) -> Version | None:
-    """Resolve HTTP version string to rnet Version enum."""
+    """Resolve an HTTP version string to the wreq Version enum."""
     if version is None:
         return None
     if isinstance(version, Version):
@@ -130,7 +130,7 @@ def is_absolute_url(url: str) -> bool:
 def resolve_proxies(
     proxies: str | dict[str, str] | list[Proxy] | None,
 ) -> list[Proxy] | None:
-    """Resolve proxies to a list of rnet Proxy objects."""
+    """Resolve proxies to a list of wreq Proxy objects."""
     if proxies is None:
         return None
     if isinstance(proxies, list):
@@ -151,15 +151,14 @@ def resolve_proxies(
 
 
 def build_rnet_multipart(files: dict[str, Any]) -> RnetMultipart:
-    """Build rnet Multipart from files dict."""
+    """Build a wreq Multipart from a files dictionary."""
     parts = []
     for name, file_info in files.items():
         if isinstance(file_info, tuple):
             filename = file_info[0]
             content = file_info[1]
             mime = file_info[2] if len(file_info) > 2 else None
-            # Pass file-like objects directly to rnet for streaming
-            # Don't call .read() - rnet handles streaming internally
+            # Pass file-like objects directly to wreq for streaming.
             parts.append(Part(name, content, filename=filename, mime=mime))
         else:
             # Direct file object or content
@@ -179,10 +178,10 @@ def build_rnet_multipart(files: dict[str, Any]) -> RnetMultipart:
 
 
 def convert_headers_dict(headers: Any) -> dict[str, str]:
-    """Convert rnet headers to dict[str, str]."""
+    """Convert wreq headers to dict[str, str]."""
     headers_dict: dict[str, str] = {}
-    for key in headers.keys():  # noqa: SIM118 - rnet v3 API requires .keys()
-        # Keys are bytes in rnet v3
+    for key in headers.keys():  # noqa: SIM118 - wreq's API requires .keys()
+        # Keys can be bytes.
         key_str = key.decode("utf-8") if isinstance(key, bytes) else str(key)
         value = headers.get(key_str)
         if value is not None:
@@ -194,7 +193,7 @@ def convert_headers_dict(headers: Any) -> dict[str, str]:
 
 
 def build_history_response(hist: Any) -> Response:
-    """Build a Response object from rnet history item."""
+    """Build a Response object from a wreq history item."""
     hist_response = Response()
     hist_response.status_code = hist.status
     hist_response.url = hist.url
@@ -221,6 +220,9 @@ class SessionBase:
     _verify: bool
     _allow_redirects: bool
     _max_redirects: int
+    _default_headers: bool
+    _http_version: Version | None
+    _cert: str | tuple[str, str] | None
     retry: RetryStrategy
     default_encoding: str | Callable[[bytes], str]
     discard_cookies: bool
@@ -263,13 +265,15 @@ class SessionBase:
         """Initialize session state and return client kwargs.
 
         This method sets up all the session state and returns the kwargs
-        needed to create the rnet client.
+        needed to create the wreq client.
         """
         self._closed = False
         self._timeout = timeout
         self._verify = verify if verify is not None else True
         self._allow_redirects = allow_redirects
         self._max_redirects = max_redirects
+        self._default_headers = default_headers
+        self._cert = cert
 
         # curl_cffi compatible options
         self.retry = normalize_retry(retry)
@@ -313,6 +317,7 @@ class SessionBase:
 
         # Resolve HTTP version
         resolved_http_version = resolve_http_version(http_version)
+        self._http_version = resolved_http_version
 
         # Resolve client certificate (identity)
         identity = self._resolve_identity(cert)
@@ -321,13 +326,14 @@ class SessionBase:
         emulation_option = create_emulation_option(
             emulation=impersonate,
             os=impersonate_os,
+            skip_headers=True if not default_headers else None,
         )
 
         # Resolve proxies
         proxy_list = resolve_proxies(proxies)
 
         # Determine redirect policy
-        # rnet v3 uses Policy objects for redirect configuration
+        # wreq uses Policy objects for redirect configuration.
         if allow_redirects:
             redirect_policy = Policy.limited(max_redirects)
         else:
@@ -335,21 +341,26 @@ class SessionBase:
 
         # Build client kwargs
         client_kwargs: dict[str, Any] = {
-            "emulation": emulation_option,
             "redirect": redirect_policy,
             "cookie_store": not discard_cookies,
-            "debug": debug,
         }
+        if emulation_option is not None:
+            client_kwargs["emulation"] = emulation_option
 
-        # SSL verification (rnet uses danger_accept_invalid_certs)
+        if debug:
+            warnings.warn(
+                "wreq does not expose a debug client option; debug=True has no effect",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        # TLS certificate verification.
         if not self._verify:
-            client_kwargs["danger_accept_invalid_certs"] = True
+            client_kwargs["tls_verify"] = False
 
         # Optional client parameters
         if user_agent:
             client_kwargs["user_agent"] = user_agent
-        if self.headers and default_headers:
-            client_kwargs["default_headers"] = dict(self.headers)
         if timeout is not None:
             if isinstance(timeout, tuple):
                 client_kwargs["timeout"] = timedelta(seconds=timeout[0])
@@ -358,15 +369,10 @@ class SessionBase:
                 client_kwargs["timeout"] = timedelta(seconds=timeout)
         if proxy_list:
             client_kwargs["proxies"] = proxy_list
-        if resolved_http_version:
-            client_kwargs["http_version"] = resolved_http_version
         if interface:
             client_kwargs["interface"] = interface
         if identity:
-            client_kwargs["identity"] = identity
-        if not default_headers:
-            client_kwargs["default_headers"] = False
-
+            client_kwargs["tls_identity"] = identity
         # Merge with any extra kwargs
         client_kwargs.update(extra_kwargs)
 
@@ -386,7 +392,7 @@ class SessionBase:
             return Identity.from_pkcs8_pem(cert_data, key_data)
         else:
             # Single PEM file - need to extract cert and key
-            # This is a limitation - rnet requires separate cert/key
+            # wreq requires separate certificate and key files.
             raise ValueError(
                 "Single PEM file not supported. "
                 "Use cert=(cert_path, key_path) with separate files."
@@ -395,7 +401,9 @@ class SessionBase:
     def clear_cookies(self) -> None:
         """Clear all cookies from the session and underlying client."""
         self.cookies.clear()
-        self._client.clear_cookies()
+        cookie_jar = self._client.cookie_jar
+        if cookie_jar is not None:
+            cookie_jar.clear()
 
     def delete_cookie(self, name: str, url: str | None = None) -> None:
         """Delete a specific cookie from the session.
@@ -409,7 +417,9 @@ class SessionBase:
             del self.cookies[name]
         if url:
             with contextlib.suppress(Exception):
-                self._client.remove_cookie(url, name)
+                cookie_jar = self._client.cookie_jar
+                if cookie_jar is not None:
+                    cookie_jar.remove(name, url)
 
     def _retry_delay(self, attempt: int) -> float:
         """Calculate delay for retry attempt."""
@@ -420,7 +430,7 @@ class SessionBase:
             delay = strategy.delay * attempt
         if strategy.jitter:
             delay += random.uniform(0.0, strategy.jitter)
-        return delay
+        return float(delay)
 
     def _prepare_request_kwargs(
         self,
@@ -434,11 +444,12 @@ class SessionBase:
         auth: tuple[str, str] | str | None,
         timeout: float | int | tuple[float, float] | None,
         allow_redirects: bool | None,
+        proxies: str | dict[str, str] | None,
         json: Any | None,
         multipart: Multipart | None,
         referer: str | None,
     ) -> tuple[PreparedRequest, dict[str, Any]]:
-        """Prepare request and build rnet kwargs.
+        """Prepare a request and build wreq keyword arguments.
 
         Returns:
             Tuple of (PreparedRequest, rnet_kwargs dict)
@@ -492,7 +503,7 @@ class SessionBase:
             else:
                 merged_cookies.update(cookies)
 
-        # Build rnet request kwargs
+        # Build wreq request keyword arguments.
         rnet_kwargs: dict[str, Any] = {}
 
         # Headers
@@ -506,6 +517,17 @@ class SessionBase:
         # Query params
         if merged_params:
             rnet_kwargs["query"] = list(merged_params.items())
+
+        # Per-request proxy.
+        if proxies:
+            proxy_url: str | None
+            if isinstance(proxies, str):
+                proxy_url = proxies
+            else:
+                scheme = urlparse(prep.url or "").scheme
+                proxy_url = proxies.get(scheme) or proxies.get("all")
+            if proxy_url:
+                rnet_kwargs["proxy"] = Proxy.all(proxy_url)
 
         # Body data
         if json is not None:
@@ -526,7 +548,7 @@ class SessionBase:
             if isinstance(multipart, MultipartWrapper):
                 rnet_kwargs["multipart"] = multipart._to_rnet_multipart()
             else:
-                # Assume it's already a rnet Multipart
+                # Assume it is already a wreq Multipart.
                 rnet_kwargs["multipart"] = multipart
         elif files:
             rnet_kwargs["multipart"] = build_rnet_multipart(files)
@@ -535,7 +557,7 @@ class SessionBase:
         effective_timeout = timeout if timeout is not None else self._timeout
         if effective_timeout is not None:
             if isinstance(effective_timeout, tuple):
-                # (connect_timeout, read_timeout) - rnet v3 uses timedelta
+                # wreq uses timedelta for connect and read timeouts.
                 rnet_kwargs["timeout"] = timedelta(seconds=effective_timeout[0])
                 rnet_kwargs["read_timeout"] = timedelta(seconds=effective_timeout[1])
             else:
@@ -545,8 +567,16 @@ class SessionBase:
         effective_redirects = (
             allow_redirects if allow_redirects is not None else self._allow_redirects
         )
-        rnet_kwargs["allow_redirects"] = effective_redirects
-        rnet_kwargs["max_redirects"] = self._max_redirects
+        rnet_kwargs["redirect"] = (
+            Policy.limited(self._max_redirects)
+            if effective_redirects
+            else Policy.none()
+        )
+
+        # Request-level options in wreq 0.12.
+        rnet_kwargs["default_headers"] = self._default_headers
+        if self._http_version is not None:
+            rnet_kwargs["version"] = self._http_version
 
         # Auth
         effective_auth = auth or self.auth
@@ -559,7 +589,7 @@ class SessionBase:
         return prep, rnet_kwargs
 
     def _get_rnet_method(self, method: str) -> tuple[Any, Any]:
-        """Get the rnet method to call.
+        """Get the wreq method to call.
 
         Returns:
             Tuple of (method_func, method_enum_or_none)
@@ -584,12 +614,12 @@ class SessionBase:
         default_encoding: str | Callable[[bytes], str] | None,
         discard_cookies: bool | None,
     ) -> Response:
-        """Build Response object from rnet response.
+        """Build a Response object from a wreq response.
 
         This handles all the common response building logic.
         """
         # Read response metadata
-        # rnet v3: status is a StatusCode object, use .as_int() to get int
+        # wreq status is a StatusCode object, use .as_int() to get an int.
         status = rnet_resp.status.as_int()
         url_final = rnet_resp.url
         encoding = getattr(rnet_resp, "encoding", None) or "utf-8"
@@ -629,7 +659,7 @@ class SessionBase:
             response.cookies.set(cookie.name, cookie.value)
 
         # Also get cookies from client's cookie jar (captures redirect cookies)
-        # rnet v3 uses cookie_jar.get_all() to get all cookies
+        # Include cookies captured by wreq's cookie jar during redirects.
         try:
             cookie_jar = self._client.cookie_jar
             if cookie_jar:
@@ -647,7 +677,7 @@ class SessionBase:
         # Set elapsed time
         response.elapsed = timedelta(seconds=elapsed_seconds)
 
-        # Populate redirect history from rnet response
+        # Populate redirect history from the wreq response.
         response.history = []
         if hasattr(rnet_resp, "history") and rnet_resp.history:
             for hist in rnet_resp.history:
@@ -697,6 +727,6 @@ class SessionBase:
     def mount(self, prefix: str, adapter: Any) -> None:
         """Registers a connection adapter to a prefix.
 
-        Note: rnet handles adapters internally, this is a no-op for compatibility.
+        Note: wreq handles adapters internally, so this is a compatibility no-op.
         """
         pass

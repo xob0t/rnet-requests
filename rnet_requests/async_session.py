@@ -3,7 +3,7 @@ rnet_requests.async_session
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This module provides an AsyncSession object for async HTTP requests,
-providing a familiar requests-like interface while using rnet as the backend.
+providing a familiar requests-like interface while using wreq as the backend.
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ from typing import (
     Any,
 )
 
-from rnet import Client as RnetAsyncClient
-from rnet import Proxy, Version
+from wreq import Client as RnetAsyncClient
+from wreq import Proxy, Version
 
 from .base import (
     DEFAULT_MAX_REDIRECTS,
@@ -30,6 +30,9 @@ from .base import (
 )
 from .base import (
     normalize_retry as _normalize_retry,
+)
+from .base import (
+    resolve_http_version as _resolve_http_version,
 )
 from .exceptions import (
     HTTPError,
@@ -48,7 +51,7 @@ if TYPE_CHECKING:
 
 
 class AsyncSession(SessionBase):
-    """An async requests-compatible Session class backed by rnet.
+    """An async requests-compatible Session class backed by wreq.
 
     Provides cookie persistence, connection-pooling, and configuration.
 
@@ -87,7 +90,7 @@ class AsyncSession(SessionBase):
         base_url: str | None = None,
         params: dict[str, str] | None = None,
         retry: int | RetryStrategy | None = None,
-        # Additional rnet options
+        # Additional wreq options
         user_agent: str | None = None,
         headers: dict[str, str] | None = None,
         cookies: dict[str, str] | None = None,
@@ -106,10 +109,10 @@ class AsyncSession(SessionBase):
         """Initialize an AsyncSession.
 
         :param impersonate: Browser to impersonate. Can be a string like 'chrome',
-            'firefox', 'safari', or an rnet Emulation enum value.
+            'firefox', 'safari', or a wreq Profile value.
         :param impersonate_os: OS to impersonate. Can be 'windows', 'macos',
-            'linux', 'android', 'ios', or an rnet EmulationOS enum value.
-        :param client: An existing rnet Client to use.
+            'linux', 'android', 'ios', or a wreq Platform value.
+        :param client: An existing wreq Client to use.
         :param timeout: Default timeout for requests in seconds, or tuple of
             (connect_timeout, read_timeout).
         :param verify: Whether to verify SSL certificates.
@@ -146,6 +149,9 @@ class AsyncSession(SessionBase):
             self._verify = verify if verify is not None else True
             self._allow_redirects = allow_redirects
             self._max_redirects = max_redirects
+            self._default_headers = default_headers
+            self._http_version = _resolve_http_version(http_version)
+            self._cert = cert
             self.retry = _normalize_retry(retry)
             self.default_encoding = default_encoding
             self.discard_cookies = discard_cookies
@@ -191,7 +197,7 @@ class AsyncSession(SessionBase):
                 raise_for_status=raise_for_status,
                 extra_kwargs=kwargs,
             )
-            # Create the rnet async client
+            # Create the wreq async client
             self._client = RnetAsyncClient(**client_kwargs)
 
     async def __aenter__(self) -> AsyncSession:
@@ -202,6 +208,8 @@ class AsyncSession(SessionBase):
 
     async def close(self) -> None:
         """Close the session."""
+        if not self._closed:
+            self._client.close()
         self._closed = True
 
     async def request(
@@ -325,6 +333,17 @@ class AsyncSession(SessionBase):
         discard_cookies: bool | None = None,
     ) -> Response:
         """Execute a single async request without retries."""
+        if verify is not None and verify != self._verify:
+            raise ValueError(
+                "wreq configures TLS verification per client; "
+                "set verify on AsyncSession"
+            )
+        if cert is not None and cert != self._cert:
+            raise ValueError(
+                "wreq configures client certificates per client; "
+                "set cert on AsyncSession"
+            )
+
         # Prepare request kwargs using base class method
         prep, rnet_kwargs = self._prepare_request_kwargs(
             method=method,
@@ -337,6 +356,7 @@ class AsyncSession(SessionBase):
             auth=auth,
             timeout=timeout,
             allow_redirects=allow_redirects,
+            proxies=proxies,
             json=json,
             multipart=multipart,
             referer=referer,
@@ -347,6 +367,8 @@ class AsyncSession(SessionBase):
             start_time = time.perf_counter()
 
             rnet_method, method_enum = self._get_rnet_method(method)
+            if prep.url is None:
+                raise ValueError("Prepared request has no URL")
 
             if rnet_method is None:
                 # Use the generic request method
@@ -479,7 +501,7 @@ class AsyncSession(SessionBase):
             cookies: Optional cookies to send.
             auth: Optional authentication (tuple of (user, pass) or bearer token).
             protocols: Optional list of WebSocket subprotocols.
-            **kwargs: Additional arguments passed to rnet's websocket method.
+            **kwargs: Additional arguments passed to wreq's websocket method.
 
         Returns:
             An AsyncWebSocket instance.
@@ -502,7 +524,7 @@ class AsyncSession(SessionBase):
         if cookies:
             merged_cookies.update(cookies)
 
-        # Build kwargs for rnet websocket
+        # Build kwargs for wreq websocket
         ws_kwargs: dict[str, Any] = {}
 
         if merged_headers:

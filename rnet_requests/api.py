@@ -10,6 +10,23 @@ from typing import Any
 from .models import Response
 from .sessions import Session
 
+_SESSION_OPTIONS = {
+    "base_url",
+    "cert",
+    "debug",
+    "default_headers",
+    "http_version",
+    "impersonate",
+    "impersonate_os",
+    "interface",
+    "max_redirects",
+    "proxy",
+    "raise_for_status",
+    "retry",
+    "user_agent",
+    "verify",
+}
+
 
 def request(
     method: str,
@@ -64,12 +81,22 @@ def request(
       >>> req
       <Response [200]>
     """
-    # Extract session-level kwargs
-    impersonate = kwargs.pop("impersonate", None)
-    impersonate_os = kwargs.pop("impersonate_os", None)
+    session_kwargs = {
+        name: kwargs.pop(name) for name in tuple(kwargs) if name in _SESSION_OPTIONS
+    }
 
-    with Session(impersonate=impersonate, impersonate_os=impersonate_os) as session:
-        return session.request(method=method, url=url, **kwargs)
+    session = Session(**session_kwargs)
+    try:
+        response = session.request(method=method, url=url, **kwargs)
+    except Exception:
+        session.close()
+        raise
+
+    if kwargs.get("stream"):
+        response._session = session
+    else:
+        session.close()
+    return response
 
 
 def get(url: str, params: Any | None = None, **kwargs: Any) -> Response:

@@ -1,8 +1,8 @@
-"""
-rnet-requests: A curl_cffi-compatible API wrapper for rnet.
+"""Proof-of-concept compatibility wrapper for trying wreq.
 
-This module provides a familiar curl_cffi-like interface while leveraging
-rnet's advanced features like browser impersonation and TLS fingerprinting.
+This module provides a partial requests-style and curl_cffi-style interface over
+wreq. It is intended for experiments and comparative testing, not as a complete
+drop-in replacement.
 
 Basic usage (sync):
     >>> import rnet_requests as requests
@@ -63,7 +63,7 @@ __all__ = [
     # Sessions
     "Session",
     "AsyncSession",
-    # Emulation (rnet v3 naming)
+    # Emulation
     "Emulation",
     "EmulationOS",
     "EmulationOption",

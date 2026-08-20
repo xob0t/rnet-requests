@@ -1,8 +1,27 @@
 # rnet-requests
 
-Drop-in replacement for `requests` and `curl_cffi` using [rnet](https://github.com/0x676e67/rnet) as the backend.
+> [!WARNING]
+> This project is a proof of concept. It is not a production-ready or complete
+> drop-in replacement for `requests` or `curl_cffi`.
 
-rnet is a Python HTTP client powered by a Rust backend (wreq), with TLS/JA3/JA4/HTTP2 fingerprint emulation. This wrapper gives you a familiar `requests`-style API.
+`rnet-requests` makes it convenient to try
+[wreq](https://github.com/0x676e67/wreq-python) in code that already uses a
+`requests`-style or `curl_cffi`-style API. The small compatibility layer lets you
+test wreq with fewer code changes before deciding whether to integrate wreq
+directly.
+
+wreq is a Python HTTP client powered by Rust. It supports TLS, JA3, JA4, and
+HTTP/2 fingerprint emulation. This wrapper covers common request, session,
+streaming, and async patterns, but behavior will differ at the edges.
+
+## What this POC is for
+
+- Trying wreq in an existing script with a small import change
+- Comparing wreq and another HTTP backend against your own targets
+- Prototyping browser impersonation, proxy, streaming, and async workflows
+
+Do not treat passing smoke tests as proof that it can replace an existing HTTP
+backend in production. Test the behavior your application relies on.
 
 ## Install
 
@@ -55,7 +74,8 @@ asyncio.run(main())
 
 ### Impersonation
 
-The main reason to use this library - bypass TLS fingerprinting:
+One reason to try wreq is to compare its browser fingerprint emulation against
+your current HTTP backend:
 
 ```python
 import rnet_requests as requests
@@ -73,7 +93,7 @@ with requests.Session(impersonate='chrome136') as s:
     r = s.get('https://tls.peet.ws/api/all')
 ```
 
-See [rnet documentation](https://github.com/0x676e67/rnet) for available browsers and OS options.
+See the [wreq documentation](https://python.wreq.org) for available browsers and OS options.
 
 ### Streaming
 
@@ -99,9 +119,9 @@ async with requests.AsyncSession() as s:
         msg = await ws.recv_str()
 ```
 
-## curl_cffi Features
+## Compatibility conveniences
 
-Most curl_cffi patterns work:
+The POC implements several common `curl_cffi` patterns:
 
 ```python
 from rnet_requests import Session, Headers, Cookies, Multipart
@@ -189,7 +209,10 @@ except HTTPError as e:
     print(e)
 ```
 
-## Migration
+## Trying it in existing code
+
+For an initial experiment, start with an import swap. Expect to adjust code that
+uses backend-specific options or behavior.
 
 From requests:
 
@@ -205,15 +228,18 @@ From curl_cffi:
 from rnet_requests import Session
 ```
 
-## Not Supported
+## Known limitations
 
+- Compatibility is partial and may change as wreq evolves
+- Synchronous WebSockets are not supported; use `AsyncSession`
 - `ja3` / `akamai` string parameters (use `impersonate` instead)
-- `extra_fp` for manual fingerprint tuning (rnet handles this via browser profiles)
+- `extra_fp` for manual fingerprint tuning (wreq handles this via browser profiles)
+- Raw curl options and curl-specific behavior are not supported
 
 ## Requirements
 
 - Python 3.11+
-- rnet
+- wreq 0.12
 
 ## License
 

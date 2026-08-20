@@ -2,7 +2,7 @@
 rnet_requests.websockets
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-WebSocket support using rnet's WebSocket client.
+WebSocket support using wreq's WebSocket client.
 Provides a curl_cffi-compatible API.
 """
 
@@ -19,8 +19,8 @@ from typing import (
     TypeVar,
 )
 
-from rnet import Message as RnetMessage
-from rnet import WebSocket as RnetWebSocket
+from wreq import Message as RnetMessage
+from wreq import WebSocket as RnetWebSocket
 
 from .exceptions import RequestException
 
@@ -78,9 +78,9 @@ class WebSocketTimeout(WebSocketError):
 
 class AsyncWebSocket:
     """
-    An async WebSocket implementation using rnet.
+    An async WebSocket implementation using wreq.
 
-    This class wraps rnet's WebSocket to provide a curl_cffi-compatible API.
+    This class wraps wreq's WebSocket to provide a curl_cffi-compatible API.
 
     Example usage:
         >>> async with session.ws_connect("wss://echo.websocket.org") as ws:
@@ -108,7 +108,7 @@ class AsyncWebSocket:
         """Initialize AsyncWebSocket.
 
         Args:
-            ws: The underlying rnet WebSocket.
+            ws: The underlying wreq WebSocket.
             session: The session that created this WebSocket.
             autoclose: Whether to auto-close on receiving close frame.
         """
@@ -137,14 +137,14 @@ class AsyncWebSocket:
     @property
     def ok(self) -> bool:
         """Whether the WebSocket connection was successful."""
-        # rnet v3: .ok attribute removed, check status code instead
+        # wreq has no .ok attribute, so check the status code instead.
         # 101 Switching Protocols indicates successful WebSocket upgrade
         return self.status == 101
 
     @property
     def status(self) -> int:
         """The HTTP status code of the WebSocket handshake."""
-        # rnet v3: status is a StatusCode object, use .as_int()
+        # wreq status is a StatusCode object, use .as_int().
         return self._ws.status.as_int()
 
     @property
@@ -160,7 +160,7 @@ class AsyncWebSocket:
     async def __aenter__(self) -> AsyncWebSocket:
         return self
 
-    async def __aexit__(self, *args) -> None:
+    async def __aexit__(self, *args: Any) -> None:
         await self.close()
 
     def __aiter__(self) -> AsyncWebSocket:

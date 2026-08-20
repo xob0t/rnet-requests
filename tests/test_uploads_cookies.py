@@ -230,7 +230,7 @@ class TestCookies:
 
     @pytest.mark.skip(
         reason="Known limitation: deleting from session.cookies dict doesn't "
-        "remove cookies from rnet's internal cookie store. Use session.clear_cookies() "
+        "remove cookies from wreq's internal cookie store. Use session.clear_cookies() "
         "or create a new session instead."
     )
     def test_delete_cookie(self):

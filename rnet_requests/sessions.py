@@ -3,7 +3,7 @@ rnet_requests.sessions
 ~~~~~~~~~~~~~~~~~~~~~~
 
 This module provides a Session object that manages settings across requests,
-providing a familiar requests-like interface while using rnet as the backend.
+providing a familiar requests-like interface while using wreq as the backend.
 """
 
 from __future__ import annotations
@@ -15,8 +15,8 @@ from typing import (
     Any,
 )
 
-from rnet import Proxy, Version
-from rnet.blocking import Client as BlockingClient
+from wreq import Proxy, Version
+from wreq.blocking import Client as BlockingClient
 
 from .base import (
     DEFAULT_MAX_REDIRECTS,
@@ -29,6 +29,9 @@ from .base import (
 )
 from .base import (
     normalize_retry as _normalize_retry,
+)
+from .base import (
+    resolve_http_version as _resolve_http_version,
 )
 from .exceptions import (
     HTTPError,
@@ -46,7 +49,7 @@ if TYPE_CHECKING:
 
 
 class Session(SessionBase):
-    """A requests-compatible Session class backed by rnet.
+    """A requests-compatible Session class backed by wreq.
 
     Provides cookie persistence, connection-pooling, and configuration.
 
@@ -63,10 +66,10 @@ class Session(SessionBase):
       >>> s.get('https://tls.peet.ws/api/all')
       <Response [200]>
 
-    Or with a custom rnet Client::
+    Or with a custom wreq Client::
 
-      >>> from rnet.blocking import Client
-      >>> from rnet import Emulation
+      >>> from wreq.blocking import Client
+      >>> from wreq import Emulation
       >>> client = Client(emulation=Emulation.Firefox139)
       >>> s = requests.Session(client=client)
     """
@@ -90,7 +93,7 @@ class Session(SessionBase):
         base_url: str | None = None,
         params: dict[str, str] | None = None,
         retry: int | RetryStrategy | None = None,
-        # Additional rnet options
+        # Additional wreq options
         user_agent: str | None = None,
         headers: dict[str, str] | None = None,
         cookies: dict[str, str] | None = None,
@@ -109,10 +112,10 @@ class Session(SessionBase):
         """Initialize a Session.
 
         :param impersonate: Browser to impersonate. Can be a string like 'chrome',
-            'firefox', 'safari', or an rnet Emulation enum value.
+            'firefox', 'safari', or a wreq Profile value.
         :param impersonate_os: OS to impersonate. Can be 'windows', 'macos',
-            'linux', 'android', 'ios', or an rnet EmulationOS enum value.
-        :param client: An existing rnet blocking Client to use.
+            'linux', 'android', 'ios', or a wreq Platform value.
+        :param client: An existing wreq blocking Client to use.
         :param timeout: Default timeout for requests in seconds, or tuple of
             (connect_timeout, read_timeout).
         :param verify: Whether to verify SSL certificates.
@@ -149,6 +152,9 @@ class Session(SessionBase):
             self._verify = verify if verify is not None else True
             self._allow_redirects = allow_redirects
             self._max_redirects = max_redirects
+            self._default_headers = default_headers
+            self._http_version = _resolve_http_version(http_version)
+            self._cert = cert
             self.retry = _normalize_retry(retry)
             self.default_encoding = default_encoding
             self.discard_cookies = discard_cookies
@@ -194,7 +200,7 @@ class Session(SessionBase):
                 raise_for_status=raise_for_status,
                 extra_kwargs=kwargs,
             )
-            # Create the rnet client
+            # Create the wreq client
             self._client = BlockingClient(**client_kwargs)
 
     def __enter__(self) -> Session:
@@ -205,6 +211,8 @@ class Session(SessionBase):
 
     def close(self) -> None:
         """Closes all adapters and as such the session."""
+        if not self._closed:
+            self._client.close()
         self._closed = True
 
     def request(
@@ -329,6 +337,15 @@ class Session(SessionBase):
         discard_cookies: bool | None = None,
     ) -> Response:
         """Execute a single request without retries."""
+        if verify is not None and verify != self._verify:
+            raise ValueError(
+                "wreq configures TLS verification per client; set verify on Session"
+            )
+        if cert is not None and cert != self._cert:
+            raise ValueError(
+                "wreq configures client certificates per client; set cert on Session"
+            )
+
         # Prepare request kwargs using base class method
         prep, rnet_kwargs = self._prepare_request_kwargs(
             method=method,
@@ -341,6 +358,7 @@ class Session(SessionBase):
             auth=auth,
             timeout=timeout,
             allow_redirects=allow_redirects,
+            proxies=proxies,
             json=json,
             multipart=multipart,
             referer=referer,
@@ -351,6 +369,8 @@ class Session(SessionBase):
             start_time = time.perf_counter()
 
             rnet_method, method_enum = self._get_rnet_method(method)
+            if prep.url is None:
+                raise ValueError("Prepared request has no URL")
 
             if rnet_method is None:
                 # Use the generic request method

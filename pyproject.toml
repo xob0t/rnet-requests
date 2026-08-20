@@ -1,16 +1,16 @@
 [project]
 name = "rnet-requests"
 version = "0.1.0"
-description = "A requests-compatible API wrapper for rnet with browser impersonation support"
+description = "A proof-of-concept compatibility wrapper for trying wreq with requests-style APIs"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
     { name = "rnet-requests contributors" }
 ]
-keywords = ["http", "requests", "rnet", "tls", "fingerprint", "impersonate", "browser"]
+keywords = ["http", "requests", "wreq", "tls", "fingerprint", "impersonate", "poc"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -23,7 +23,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "rnet>=3.0.0rc22",
+    "wreq>=0.12.1,<0.13",
 ]
 
 [project.optional-dependencies]
@@ -36,9 +36,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/rnet-requests"
-Repository = "https://github.com/your-org/rnet-requests"
-Documentation = "https://github.com/your-org/rnet-requests#readme"
+Homepage = "https://github.com/xob0t/rnet-requests"
+Repository = "https://github.com/xob0t/rnet-requests"
+Documentation = "https://github.com/xob0t/rnet-requests#readme"
 
 [build-system]
 requires = ["hatchling"]

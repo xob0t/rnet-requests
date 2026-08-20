@@ -107,11 +107,11 @@ class Headers(MutableMapping[str, str | None]):
                 sep = ":" if isinstance(headers[0], str) else b":"
                 h = []
                 for line in headers:
-                    k, v = line.split(sep, maxsplit=1)  # type: ignore
+                    k, v = line.split(sep, maxsplit=1)
                     h.append((k, v.strip()))
             # list of (Name, Value) pairs
             elif headers and isinstance(headers[0], tuple):
-                h = headers  # type: ignore
+                h = headers
             else:
                 h = []
             self._list = [
@@ -229,7 +229,7 @@ class Headers(MutableMapping[str, str | None]):
         if not split_commas:
             return values
 
-        split_values = []
+        split_values: list[str | None] = []
         for value in values:
             if value is not None:
                 split_values.extend([item.strip() for item in value.split(",")])
@@ -275,10 +275,9 @@ class Headers(MutableMapping[str, str | None]):
         Retains insertion order.
         """
         set_key = key.encode(self._encoding or "utf-8")
-        if value is not None:
-            set_value = value.encode(self._encoding or "utf-8")
-        else:
-            set_value = value
+        set_value: bytes | None = (
+            value.encode(self._encoding or "utf-8") if value is not None else None
+        )
         lookup_key = set_key.lower()
 
         found_indexes = [

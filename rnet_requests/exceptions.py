@@ -8,7 +8,7 @@ designed to be compatible with the requests library.
 
 from typing import Any
 
-import rnet.exceptions as rnet_exc
+import wreq.exceptions as rnet_exc
 
 
 class RequestException(IOError):
@@ -188,9 +188,9 @@ class RequestsDependencyWarning(RequestsWarning):
 
 
 def convert_rnet_exception(exc: Exception) -> RequestException:
-    """Convert an rnet exception to a requests-compatible exception.
+    """Convert a wreq exception to a requests-compatible exception.
 
-    rnet v3 exceptions:
+    wreq exceptions:
     - TimeoutError: request timed out
     - ConnectionError: connection failed
     - ConnectionResetError: connection was reset

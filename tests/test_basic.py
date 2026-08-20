@@ -51,7 +51,7 @@ class TestImports:
         assert issubclass(Timeout, RequestException)
 
     def test_import_impersonate(self):
-        """Test importing rnet's impersonate classes."""
+        """Test importing the backend impersonation classes."""
         from rnet_requests import Impersonate, ImpersonateOS
 
         assert Impersonate.Chrome137 is not None

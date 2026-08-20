@@ -10,6 +10,23 @@ from typing import Any
 from .async_session import AsyncSession
 from .models import Response
 
+_SESSION_OPTIONS = {
+    "base_url",
+    "cert",
+    "debug",
+    "default_headers",
+    "http_version",
+    "impersonate",
+    "impersonate_os",
+    "interface",
+    "max_redirects",
+    "proxy",
+    "raise_for_status",
+    "retry",
+    "user_agent",
+    "verify",
+}
+
 
 async def request(
     method: str,
@@ -66,14 +83,22 @@ async def request(
       ...     print(r.status_code)
       >>> asyncio.run(main())
     """
-    # Extract session-level kwargs
-    impersonate = kwargs.pop("impersonate", None)
-    impersonate_os = kwargs.pop("impersonate_os", None)
+    session_kwargs = {
+        name: kwargs.pop(name) for name in tuple(kwargs) if name in _SESSION_OPTIONS
+    }
 
-    async with AsyncSession(
-        impersonate=impersonate, impersonate_os=impersonate_os
-    ) as session:
-        return await session.request(method=method, url=url, **kwargs)
+    session = AsyncSession(**session_kwargs)
+    try:
+        response = await session.request(method=method, url=url, **kwargs)
+    except Exception:
+        await session.close()
+        raise
+
+    if kwargs.get("stream"):
+        response._session = session
+    else:
+        await session.close()
+    return response
 
 
 async def get(url: str, params: Any | None = None, **kwargs: Any) -> Response:
