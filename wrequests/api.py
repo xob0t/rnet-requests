@@ -1,5 +1,5 @@
 """
-rnet_requests.api
+wrequests.api
 ~~~~~~~~~~~~~~~~~
 
 This module implements the requests-compatible API.
@@ -76,7 +76,7 @@ def request(
 
     Usage::
 
-      >>> import rnet_requests as requests
+      >>> import wrequests as requests
       >>> req = requests.request('GET', 'https://httpbin.org/get')
       >>> req
       <Response [200]>

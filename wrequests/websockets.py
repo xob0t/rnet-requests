@@ -1,5 +1,5 @@
 """
-rnet_requests.websockets
+wrequests.websockets
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 WebSocket support using wreq's WebSocket client.
@@ -19,8 +19,8 @@ from typing import (
     TypeVar,
 )
 
-from wreq import Message as RnetMessage
-from wreq import WebSocket as RnetWebSocket
+from wreq import Message as WreqMessage
+from wreq import WebSocket as WreqWebSocket
 
 from .exceptions import RequestException
 
@@ -100,7 +100,7 @@ class AsyncWebSocket:
 
     def __init__(
         self,
-        ws: RnetWebSocket,
+        ws: WreqWebSocket,
         session: AsyncSession | None = None,
         *,
         autoclose: bool = True,
@@ -268,9 +268,9 @@ class AsyncWebSocket:
             raise WebSocketClosed("WebSocket is closed")
 
         if isinstance(data, str):
-            msg = RnetMessage.from_text(data)
+            msg = WreqMessage.from_text(data)
         else:
-            msg = RnetMessage.from_binary(data)
+            msg = WreqMessage.from_binary(data)
 
         try:
             await self._ws.send(msg)
@@ -287,7 +287,7 @@ class AsyncWebSocket:
             raise WebSocketClosed("WebSocket is closed")
 
         try:
-            await self._ws.send(RnetMessage.from_text(data))
+            await self._ws.send(WreqMessage.from_text(data))
         except Exception as e:
             raise WebSocketError(str(e)) from e
 
@@ -301,7 +301,7 @@ class AsyncWebSocket:
             raise WebSocketClosed("WebSocket is closed")
 
         try:
-            await self._ws.send(RnetMessage.from_binary(data))
+            await self._ws.send(WreqMessage.from_binary(data))
         except Exception as e:
             raise WebSocketError(str(e)) from e
 
@@ -332,7 +332,7 @@ class AsyncWebSocket:
             data = data.encode()
 
         try:
-            await self._ws.send(RnetMessage.from_ping(data))
+            await self._ws.send(WreqMessage.from_ping(data))
         except Exception as e:
             raise WebSocketError(str(e)) from e
 
@@ -350,11 +350,11 @@ class AsyncWebSocket:
 
         try:
             # Use from_pong if available, otherwise create binary message
-            if hasattr(RnetMessage, "from_pong"):
-                await self._ws.send(RnetMessage.from_pong(data))
+            if hasattr(WreqMessage, "from_pong"):
+                await self._ws.send(WreqMessage.from_pong(data))
             else:
                 # Fallback: pong is similar to ping in WebSocket protocol
-                await self._ws.send(RnetMessage.from_ping(data))
+                await self._ws.send(WreqMessage.from_ping(data))
         except Exception as e:
             raise WebSocketError(str(e)) from e
 

@@ -1,11 +1,11 @@
 """
-rnet_requests.impersonate
+wrequests.impersonate
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Browser impersonation (emulation) types and utilities, compatible with curl_cffi.
 
 This module adapts wreq's Profile, Platform, and Emulation types to the
-curl_cffi-compatible names exposed by rnet-requests.
+curl_cffi-compatible names exposed by wrequests.
 """
 
 import re

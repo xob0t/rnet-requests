@@ -1,14 +1,14 @@
 """
-rnet_requests.exceptions
+wrequests.exceptions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-This module contains the exceptions used in rnet-requests,
+This module contains the exceptions used in wrequests,
 designed to be compatible with the requests library.
 """
 
 from typing import Any
 
-import wreq.exceptions as rnet_exc
+import wreq.exceptions as wreq_exc
 
 
 class RequestException(IOError):
@@ -187,7 +187,7 @@ class RequestsDependencyWarning(RequestsWarning):
     pass
 
 
-def convert_rnet_exception(exc: Exception) -> RequestException:
+def convert_wreq_exception(exc: Exception) -> RequestException:
     """Convert a wreq exception to a requests-compatible exception.
 
     wreq exceptions:
@@ -205,25 +205,25 @@ def convert_rnet_exception(exc: Exception) -> RequestException:
     - UpgradeError: websocket upgrade error
     - WebSocketError: websocket error
     """
-    if isinstance(exc, rnet_exc.TimeoutError):
+    if isinstance(exc, wreq_exc.TimeoutError):
         return Timeout(str(exc))
-    elif isinstance(exc, rnet_exc.ConnectionResetError):
+    elif isinstance(exc, wreq_exc.ConnectionResetError):
         return ConnectionError(str(exc))
-    elif isinstance(exc, rnet_exc.ProxyConnectionError):
+    elif isinstance(exc, wreq_exc.ProxyConnectionError):
         return ProxyError(str(exc))
-    elif isinstance(exc, rnet_exc.ConnectionError):
+    elif isinstance(exc, wreq_exc.ConnectionError):
         return ConnectionError(str(exc))
-    elif isinstance(exc, rnet_exc.RedirectError):
+    elif isinstance(exc, wreq_exc.RedirectError):
         return TooManyRedirects(str(exc))
-    elif isinstance(exc, rnet_exc.TlsError):
+    elif isinstance(exc, wreq_exc.TlsError):
         return SSLError(str(exc))
-    elif isinstance(exc, (rnet_exc.DecodingError, rnet_exc.BodyError)):
+    elif isinstance(exc, (wreq_exc.DecodingError, wreq_exc.BodyError)):
         return ContentDecodingError(str(exc))
-    elif isinstance(exc, rnet_exc.StatusError):
+    elif isinstance(exc, wreq_exc.StatusError):
         return HTTPError(str(exc))
-    elif isinstance(exc, (rnet_exc.RequestError, rnet_exc.BuilderError)):
+    elif isinstance(exc, (wreq_exc.RequestError, wreq_exc.BuilderError)):
         return RequestException(str(exc))
-    elif isinstance(exc, (rnet_exc.UpgradeError, rnet_exc.WebSocketError)):
+    elif isinstance(exc, (wreq_exc.UpgradeError, wreq_exc.WebSocketError)):
         return ConnectionError(str(exc))
     else:
         return RequestException(str(exc))

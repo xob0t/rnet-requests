@@ -5,7 +5,7 @@ wreq. It is intended for experiments and comparative testing, not as a complete
 drop-in replacement.
 
 Basic usage (sync):
-    >>> import rnet_requests as requests
+    >>> import wrequests as requests
     >>> r = requests.get('https://httpbin.org/get')
     >>> r.status_code
     200
@@ -14,9 +14,9 @@ Basic usage (sync):
 
 Basic usage (async):
     >>> import asyncio
-    >>> import rnet_requests
+    >>> import wrequests
     >>> async def main():
-    ...     async with rnet_requests.AsyncSession() as s:
+    ...     async with wrequests.AsyncSession() as s:
     ...         r = await s.get('https://httpbin.org/get')
     ...         print(r.json())
     >>> asyncio.run(main())
@@ -34,7 +34,7 @@ With browser impersonation:
 
 WebSocket support:
     >>> async def ws_example():
-    ...     async with rnet_requests.AsyncSession() as s:
+    ...     async with wrequests.AsyncSession() as s:
     ...         async with s.ws_connect("wss://echo.websocket.org") as ws:
     ...             await ws.send_str("Hello!")
     ...             msg = await ws.recv_str()

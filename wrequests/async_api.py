@@ -1,5 +1,5 @@
 """
-rnet_requests.async_api
+wrequests.async_api
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 This module implements the async requests-compatible API.
@@ -77,9 +77,9 @@ async def request(
     Usage::
 
       >>> import asyncio
-      >>> import rnet_requests
+      >>> import wrequests
       >>> async def main():
-      ...     r = await rnet_requests.async_request('GET', 'https://httpbin.org/get')
+      ...     r = await wrequests.async_request('GET', 'https://httpbin.org/get')
       ...     print(r.status_code)
       >>> asyncio.run(main())
     """

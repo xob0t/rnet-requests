@@ -1,8 +1,8 @@
 """
-rnet_requests.models
+wrequests.models
 ~~~~~~~~~~~~~~~~~~~~
 
-This module contains the primary objects that power rnet-requests.
+This module contains the primary objects that power wrequests.
 """
 
 from __future__ import annotations
@@ -24,8 +24,8 @@ from .exceptions import (
 from .structures import CaseInsensitiveDict
 
 if TYPE_CHECKING:
-    from wreq import Response as RnetResponse
-    from wreq.blocking import Response as RnetBlockingResponse
+    from wreq import Response as WreqResponse
+    from wreq.blocking import Response as WreqBlockingResponse
 
 
 class Request:
@@ -49,7 +49,7 @@ class Request:
 
     Usage::
 
-      >>> import rnet_requests as requests
+      >>> import wrequests as requests
       >>> req = requests.Request('GET', 'https://httpbin.org/get')
       >>> req.prepare()
       <PreparedRequest [GET]>
@@ -114,7 +114,7 @@ class PreparedRequest:
 
     Usage::
 
-      >>> import rnet_requests as requests
+      >>> import wrequests as requests
       >>> req = requests.Request('GET', 'https://httpbin.org/get')
       >>> r = req.prepare()
       >>> r
@@ -286,7 +286,7 @@ class Response:
         self.request: PreparedRequest | None = None
 
         # Internal wreq response object.
-        self._rnet_response: Any | None = None
+        self._wreq_response: Any | None = None
         self._session: Any | None = None
 
         # Streaming support
@@ -612,8 +612,8 @@ class Response:
     async def aclose(self) -> None:
         """Async close for streaming responses."""
         self._stream_consumed = True
-        if self._rnet_response and hasattr(self._rnet_response, "close"):
-            result = self._rnet_response.close()
+        if self._wreq_response and hasattr(self._wreq_response, "close"):
+            result = self._wreq_response.close()
             if inspect.isawaitable(result):
                 await result
         if self._session is not None:
@@ -625,8 +625,8 @@ class Response:
     def close(self) -> None:
         """Releases the connection back to the pool."""
         self._stream_consumed = True
-        if self._rnet_response and hasattr(self._rnet_response, "close"):
-            close = self._rnet_response.close
+        if self._wreq_response and hasattr(self._wreq_response, "close"):
+            close = self._wreq_response.close
             if not inspect.iscoroutinefunction(close):
                 close()
         if self._session is not None:
@@ -636,9 +636,9 @@ class Response:
                 self._session = None
 
     @classmethod
-    def from_rnet_response(
+    def from_wreq_response(
         cls,
-        rnet_resp: RnetResponse | RnetBlockingResponse,
+        wreq_resp: WreqResponse | WreqBlockingResponse,
         content: bytes,
         text: str | None = None,
     ) -> Response:
@@ -647,23 +647,23 @@ class Response:
         This method handles wreq's current response API.
         """
         response = cls()
-        response._rnet_response = rnet_resp
+        response._wreq_response = wreq_resp
         response._content = content
         response._text = text
         response._content_consumed = True
 
         # wreq status is a StatusCode object, use .as_int().
-        response.status_code = rnet_resp.status.as_int()
-        response.url = rnet_resp.url
+        response.status_code = wreq_resp.status.as_int()
+        response.url = wreq_resp.url
         response.encoding = (
-            rnet_resp.encoding if hasattr(rnet_resp, "encoding") else None
+            wreq_resp.encoding if hasattr(wreq_resp, "encoding") else None
         )
 
         # Convert wreq's HeaderMap via keys() and get().
         response.headers = CaseInsensitiveDict()
-        for key in rnet_resp.headers.keys():  # noqa: SIM118
+        for key in wreq_resp.headers.keys():  # noqa: SIM118
             key_str = key.decode("utf-8") if isinstance(key, bytes) else str(key)
-            value = rnet_resp.headers.get(key_str)
+            value = wreq_resp.headers.get(key_str)
             if value is not None:
                 value_str = (
                     value.decode("utf-8") if isinstance(value, bytes) else str(value)
@@ -672,7 +672,7 @@ class Response:
 
         # Convert cookies - use Cookies class for curl_cffi compatibility
         response.cookies = Cookies()
-        for cookie in rnet_resp.cookies:
+        for cookie in wreq_resp.cookies:
             response.cookies.set(cookie.name, cookie.value)
 
         # Set reason from status code

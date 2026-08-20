@@ -1,8 +1,8 @@
 """
-rnet_requests.structures
+wrequests.structures
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Data structures that power rnet-requests.
+Data structures that power wrequests.
 """
 
 from collections.abc import Iterator, MutableMapping

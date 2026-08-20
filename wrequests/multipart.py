@@ -1,5 +1,5 @@
 """
-rnet_requests.multipart
+wrequests.multipart
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Multipart form data support compatible with curl_cffi.
@@ -10,8 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from wreq import Multipart as RnetMultipart
-from wreq import Part as RnetPart
+from wreq import Multipart as WreqMultipart
+from wreq import Part as WreqPart
 
 
 class Multipart:
@@ -77,7 +77,7 @@ class Multipart:
             }
         )
 
-    def _to_rnet_multipart(self) -> RnetMultipart:
+    def _to_wreq_multipart(self) -> WreqMultipart:
         """Convert to a wreq Multipart object."""
         parts = []
         for part_info in self._parts:
@@ -94,10 +94,10 @@ class Multipart:
                 data = data.encode("utf-8")
 
             # Pass file-like objects directly to wreq for streaming.
-            part = RnetPart(name, data, filename=filename, mime=content_type)
+            part = WreqPart(name, data, filename=filename, mime=content_type)
             parts.append(part)
 
-        return RnetMultipart(*parts)
+        return WreqMultipart(*parts)
 
     @classmethod
     def from_dict(

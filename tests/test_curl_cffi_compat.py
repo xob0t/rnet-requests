@@ -8,7 +8,7 @@ class TestBaseUrl:
 
     def test_base_url_sync(self):
         """Test base_url with sync Session."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(base_url="https://httpbin.org") as s:
             r = s.get("/get")
@@ -17,7 +17,7 @@ class TestBaseUrl:
 
     def test_base_url_with_trailing_slash(self):
         """Test base_url with trailing slash."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(base_url="https://httpbin.org/") as s:
             r = s.get("get")
@@ -26,7 +26,7 @@ class TestBaseUrl:
 
     def test_base_url_absolute_url_override(self):
         """Test that absolute URLs override base_url."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(base_url="https://example.com") as s:
             r = s.get("https://httpbin.org/get")
@@ -35,7 +35,7 @@ class TestBaseUrl:
 
     def test_base_url_invalid(self):
         """Test that relative base_url raises error."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with pytest.raises(ValueError, match="absolute url"):
             Session(base_url="/relative/path")
@@ -43,7 +43,7 @@ class TestBaseUrl:
     @pytest.mark.asyncio
     async def test_base_url_async(self):
         """Test base_url with async AsyncSession."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(base_url="https://httpbin.org") as s:
             r = await s.get("/get")
@@ -56,7 +56,7 @@ class TestDefaultParams:
 
     def test_default_params_sync(self):
         """Test default params with sync Session."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(params={"key": "value"}) as s:
             r = s.get("https://httpbin.org/get")
@@ -66,7 +66,7 @@ class TestDefaultParams:
 
     def test_default_params_merge(self):
         """Test that request params merge with default params."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(params={"default": "value"}) as s:
             r = s.get("https://httpbin.org/get", params={"request": "param"})
@@ -77,7 +77,7 @@ class TestDefaultParams:
 
     def test_default_params_override(self):
         """Test that request params override default params."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(params={"key": "default"}) as s:
             r = s.get("https://httpbin.org/get", params={"key": "override"})
@@ -88,7 +88,7 @@ class TestDefaultParams:
     @pytest.mark.asyncio
     async def test_default_params_async(self):
         """Test default params with async AsyncSession."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(params={"key": "value"}) as s:
             r = await s.get("https://httpbin.org/get")
@@ -102,7 +102,7 @@ class TestProxyParameter:
 
     def test_proxy_parameter_error(self):
         """Test that specifying both proxy and proxies raises error."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with pytest.raises(TypeError, match="Cannot specify both"):
             Session(proxy="http://proxy:8080", proxies={"http": "http://other:8080"})
@@ -113,7 +113,7 @@ class TestHeaders:
 
     def test_headers_basic(self):
         """Test basic Headers functionality."""
-        from rnet_requests import Headers
+        from wrequests import Headers
 
         h = Headers({"Content-Type": "application/json"})
         assert h["content-type"] == "application/json"
@@ -121,7 +121,7 @@ class TestHeaders:
 
     def test_headers_get_list(self):
         """Test Headers.get_list method."""
-        from rnet_requests import Headers
+        from wrequests import Headers
 
         h = Headers([("Set-Cookie", "a=1"), ("Set-Cookie", "b=2")])
         cookies = h.get_list("set-cookie")
@@ -131,7 +131,7 @@ class TestHeaders:
 
     def test_headers_multi_items(self):
         """Test Headers.multi_items method."""
-        from rnet_requests import Headers
+        from wrequests import Headers
 
         h = Headers([("X-Custom", "value1"), ("X-Custom", "value2")])
         items = h.multi_items()
@@ -139,7 +139,7 @@ class TestHeaders:
 
     def test_headers_case_insensitive(self):
         """Test Headers case insensitivity."""
-        from rnet_requests import Headers
+        from wrequests import Headers
 
         h = Headers()
         h["Content-Type"] = "text/plain"
@@ -152,7 +152,7 @@ class TestCookies:
 
     def test_cookies_basic(self):
         """Test basic Cookies functionality."""
-        from rnet_requests import Cookies
+        from wrequests import Cookies
 
         c = Cookies({"session": "abc123"})
         assert c["session"] == "abc123"
@@ -160,7 +160,7 @@ class TestCookies:
 
     def test_cookies_set_with_domain(self):
         """Test Cookies.set with domain."""
-        from rnet_requests import Cookies
+        from wrequests import Cookies
 
         c = Cookies()
         c.set("name", "value", domain="example.com")
@@ -168,7 +168,7 @@ class TestCookies:
 
     def test_cookies_get_dict(self):
         """Test Cookies.get_dict method."""
-        from rnet_requests import Cookies
+        from wrequests import Cookies
 
         c = Cookies({"a": "1", "b": "2"})
         d = c.get_dict()
@@ -176,7 +176,7 @@ class TestCookies:
 
     def test_cookies_delete(self):
         """Test Cookies.delete method."""
-        from rnet_requests import Cookies
+        from wrequests import Cookies
 
         c = Cookies({"a": "1", "b": "2"})
         c.delete("a")
@@ -185,7 +185,7 @@ class TestCookies:
 
     def test_cookies_clear(self):
         """Test Cookies.clear method."""
-        from rnet_requests import Cookies
+        from wrequests import Cookies
 
         c = Cookies({"a": "1", "b": "2"})
         c.clear()
@@ -197,7 +197,7 @@ class TestBrowserType:
 
     def test_browser_type_values(self):
         """Test BrowserType enum values."""
-        from rnet_requests import BrowserType
+        from wrequests import BrowserType
 
         assert BrowserType.chrome.value == "chrome"
         assert BrowserType.firefox.value == "firefox"
@@ -205,7 +205,7 @@ class TestBrowserType:
 
     def test_browser_type_with_session(self):
         """Test using BrowserType with Session."""
-        from rnet_requests import BrowserType, Session
+        from wrequests import BrowserType, Session
 
         with Session(impersonate=BrowserType.chrome) as s:
             r = s.get("https://httpbin.org/get")
@@ -217,7 +217,7 @@ class TestMultipart:
 
     def test_multipart_basic(self):
         """Test basic Multipart creation."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         mp = Multipart()
         mp.addpart("field", data=b"value")
@@ -225,7 +225,7 @@ class TestMultipart:
 
     def test_multipart_with_file(self):
         """Test Multipart with file data."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         mp = Multipart()
         mp.addpart("file", filename="test.txt", data=b"Hello, World!")
@@ -233,7 +233,7 @@ class TestMultipart:
 
     def test_multipart_from_dict(self):
         """Test Multipart.from_dict method."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         mp = Multipart.from_dict(
             {
@@ -245,7 +245,7 @@ class TestMultipart:
 
     def test_multipart_upload_sync(self):
         """Test uploading with Multipart (sync)."""
-        from rnet_requests import Multipart, Session
+        from wrequests import Multipart, Session
 
         mp = Multipart()
         mp.addpart("file", filename="test.txt", data=b"Hello from Multipart!")
@@ -262,7 +262,7 @@ class TestMultipart:
     @pytest.mark.asyncio
     async def test_multipart_upload_async(self):
         """Test uploading with Multipart (async)."""
-        from rnet_requests import AsyncSession, Multipart
+        from wrequests import AsyncSession, Multipart
 
         mp = Multipart()
         mp.addpart("document", filename="doc.txt", data=b"Async multipart content")
@@ -275,7 +275,7 @@ class TestMultipart:
 
     def test_multipart_from_dict_upload(self):
         """Test uploading with Multipart.from_dict."""
-        from rnet_requests import Multipart, Session
+        from wrequests import Multipart, Session
 
         mp = Multipart.from_dict(
             {
@@ -294,7 +294,7 @@ class TestMultipart:
 
     def test_multipart_with_content_type(self):
         """Test Multipart with custom content type."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         mp = Multipart()
         mp.addpart(
@@ -308,7 +308,7 @@ class TestInitialCookies:
 
     def test_initial_cookies_sync(self):
         """Test initial cookies with sync Session."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(cookies={"preset": "value"}) as s:
             assert s.cookies["preset"] == "value"
@@ -319,7 +319,7 @@ class TestInitialCookies:
     @pytest.mark.asyncio
     async def test_initial_cookies_async(self):
         """Test initial cookies with async AsyncSession."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(cookies={"preset": "value"}) as s:
             assert s.cookies["preset"] == "value"
@@ -333,7 +333,7 @@ class TestResponseHistory:
 
     def test_history_populated_on_redirect(self):
         """Test that history is populated on redirects."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/redirect/3")
@@ -347,7 +347,7 @@ class TestResponseHistory:
 
     def test_history_empty_no_redirect(self):
         """Test that history is empty when no redirects."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/get")
@@ -356,7 +356,7 @@ class TestResponseHistory:
 
     def test_history_has_headers(self):
         """Test that history entries have headers."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/redirect/1")
@@ -369,7 +369,7 @@ class TestResponseHistory:
     @pytest.mark.asyncio
     async def test_history_async(self):
         """Test history with async session."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/redirect/2")
@@ -380,7 +380,7 @@ class TestResponseHistory:
 
     def test_history_url_chain(self):
         """Test that history URLs form correct chain."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/redirect/2")
@@ -399,7 +399,7 @@ class TestResponseElapsed:
         """Test that elapsed is a timedelta."""
         from datetime import timedelta
 
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/get")
@@ -407,7 +407,7 @@ class TestResponseElapsed:
 
     def test_elapsed_positive(self):
         """Test that elapsed is positive."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/get")
@@ -415,7 +415,7 @@ class TestResponseElapsed:
 
     def test_elapsed_delay_request(self):
         """Test elapsed with delayed response."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/delay/1")
@@ -427,7 +427,7 @@ class TestResponseElapsed:
         """Test elapsed with async session."""
         from datetime import timedelta
 
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/get")
@@ -440,14 +440,14 @@ class TestCookiesClass:
 
     def test_session_cookies_is_cookies_class(self):
         """Test that session.cookies is Cookies class."""
-        from rnet_requests import Cookies, Session
+        from wrequests import Cookies, Session
 
         with Session() as s:
             assert isinstance(s.cookies, Cookies)
 
     def test_response_cookies_is_cookies_class(self):
         """Test that response.cookies is Cookies class."""
-        from rnet_requests import Cookies, Session
+        from wrequests import Cookies, Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/cookies/set/testcookie/testvalue")
@@ -455,7 +455,7 @@ class TestCookiesClass:
 
     def test_session_cookies_set_with_domain(self):
         """Test setting cookies with domain on session."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             s.cookies.set("name", "value", domain=".example.com")
@@ -463,7 +463,7 @@ class TestCookiesClass:
 
     def test_response_cookies_get_with_domain(self):
         """Test getting cookies with domain from response."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/cookies/set/testcookie/testvalue")
@@ -474,7 +474,7 @@ class TestCookiesClass:
     @pytest.mark.asyncio
     async def test_async_session_cookies_class(self):
         """Test async session cookies is Cookies class."""
-        from rnet_requests import AsyncSession, Cookies
+        from wrequests import AsyncSession, Cookies
 
         async with AsyncSession() as s:
             assert isinstance(s.cookies, Cookies)
@@ -487,7 +487,7 @@ class TestMultipartFromList:
 
     def test_from_list_basic(self):
         """Test basic from_list functionality."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         mp = Multipart.from_list(
             [
@@ -499,7 +499,7 @@ class TestMultipartFromList:
 
     def test_from_list_with_filename(self):
         """Test from_list with filename."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         mp = Multipart.from_list(
             [
@@ -510,7 +510,7 @@ class TestMultipartFromList:
 
     def test_from_list_with_content_type(self):
         """Test from_list with content_type."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         mp = Multipart.from_list(
             [
@@ -526,14 +526,14 @@ class TestMultipartFromList:
 
     def test_from_list_missing_name_raises(self):
         """Test that from_list raises error if name missing."""
-        from rnet_requests import Multipart
+        from wrequests import Multipart
 
         with pytest.raises(ValueError, match="name"):
             Multipart.from_list([{"data": "value"}])
 
     def test_from_list_upload(self):
         """Test uploading with from_list."""
-        from rnet_requests import Multipart, Session
+        from wrequests import Multipart, Session
 
         mp = Multipart.from_list(
             [
@@ -555,7 +555,7 @@ class TestSyncWebSocketError:
 
     def test_ws_connect_raises_not_implemented(self):
         """Test that sync ws_connect raises NotImplementedError."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s, pytest.raises(NotImplementedError, match="AsyncSession"):
             s.ws_connect("wss://echo.websocket.org")
@@ -566,7 +566,7 @@ class TestOSImpersonation:
 
     def test_impersonate_os_windows(self):
         """Test Windows OS impersonation."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(impersonate="chrome", impersonate_os="windows") as s:
             r = s.get("https://httpbin.org/headers")
@@ -576,7 +576,7 @@ class TestOSImpersonation:
 
     def test_impersonate_os_macos(self):
         """Test macOS impersonation."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(impersonate="chrome", impersonate_os="macos") as s:
             r = s.get("https://httpbin.org/headers")
@@ -586,7 +586,7 @@ class TestOSImpersonation:
 
     def test_impersonate_os_linux(self):
         """Test Linux OS impersonation."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(impersonate="chrome", impersonate_os="linux") as s:
             r = s.get("https://httpbin.org/headers")
@@ -597,7 +597,7 @@ class TestOSImpersonation:
     @pytest.mark.asyncio
     async def test_impersonate_os_async(self):
         """Test OS impersonation with async session."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(impersonate="firefox", impersonate_os="windows") as s:
             r = await s.get("https://httpbin.org/headers")
@@ -611,9 +611,9 @@ class TestModuleLevelOSImpersonation:
 
     def test_module_level_get_with_impersonate_os(self):
         """Test module-level get() with impersonate_os."""
-        import rnet_requests
+        import wrequests
 
-        r = rnet_requests.get(
+        r = wrequests.get(
             "https://httpbin.org/headers",
             impersonate="chrome",
             impersonate_os="windows",
@@ -624,9 +624,9 @@ class TestModuleLevelOSImpersonation:
 
     def test_module_level_request_with_impersonate_os(self):
         """Test module-level request() with impersonate_os."""
-        import rnet_requests
+        import wrequests
 
-        r = rnet_requests.request(
+        r = wrequests.request(
             "GET",
             "https://httpbin.org/headers",
             impersonate="firefox",
@@ -639,9 +639,9 @@ class TestModuleLevelOSImpersonation:
     @pytest.mark.asyncio
     async def test_async_module_level_get_with_impersonate_os(self):
         """Test async module-level get() with impersonate_os."""
-        import rnet_requests
+        import wrequests
 
-        r = await rnet_requests.async_get(
+        r = await wrequests.async_get(
             "https://httpbin.org/headers",
             impersonate="chrome",
             impersonate_os="linux",
@@ -656,8 +656,8 @@ class TestSessionClosed:
 
     def test_sync_session_closed_raises(self):
         """Test that using closed sync session raises SessionClosed."""
-        from rnet_requests import Session
-        from rnet_requests.exceptions import SessionClosed
+        from wrequests import Session
+        from wrequests.exceptions import SessionClosed
 
         s = Session()
         s.close()
@@ -667,8 +667,8 @@ class TestSessionClosed:
     @pytest.mark.asyncio
     async def test_async_session_closed_raises(self):
         """Test that using closed async session raises SessionClosed."""
-        from rnet_requests import AsyncSession
-        from rnet_requests.exceptions import SessionClosed
+        from wrequests import AsyncSession
+        from wrequests.exceptions import SessionClosed
 
         s = AsyncSession()
         await s.close()
@@ -681,7 +681,7 @@ class TestRetryStrategy:
 
     def test_retry_strategy_creation(self):
         """Test RetryStrategy dataclass."""
-        from rnet_requests import RetryStrategy
+        from wrequests import RetryStrategy
 
         strategy = RetryStrategy(count=3, delay=1.0, jitter=0.5, backoff="exponential")
         assert strategy.count == 3
@@ -691,7 +691,7 @@ class TestRetryStrategy:
 
     def test_retry_strategy_defaults(self):
         """Test RetryStrategy default values."""
-        from rnet_requests import RetryStrategy
+        from wrequests import RetryStrategy
 
         strategy = RetryStrategy(count=2)
         assert strategy.count == 2
@@ -701,7 +701,7 @@ class TestRetryStrategy:
 
     def test_session_with_retry_int(self):
         """Test Session with retry as int."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(retry=3) as s:
             assert s.retry.count == 3
@@ -709,7 +709,7 @@ class TestRetryStrategy:
 
     def test_session_with_retry_strategy(self):
         """Test Session with RetryStrategy."""
-        from rnet_requests import RetryStrategy, Session
+        from wrequests import RetryStrategy, Session
 
         strategy = RetryStrategy(count=2, delay=0.5)
         with Session(retry=strategy) as s:
@@ -719,7 +719,7 @@ class TestRetryStrategy:
     @pytest.mark.asyncio
     async def test_async_session_with_retry(self):
         """Test AsyncSession with retry."""
-        from rnet_requests import AsyncSession, RetryStrategy
+        from wrequests import AsyncSession, RetryStrategy
 
         strategy = RetryStrategy(count=2, delay=0.1)
         async with AsyncSession(retry=strategy) as s:
@@ -733,7 +733,7 @@ class TestRefererShortcut:
 
     def test_referer_sync(self):
         """Test referer shortcut in sync request."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/headers", referer="https://example.com")
@@ -744,7 +744,7 @@ class TestRefererShortcut:
     @pytest.mark.asyncio
     async def test_referer_async(self):
         """Test referer shortcut in async request."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/headers", referer="https://test.com")
@@ -758,7 +758,7 @@ class TestRaiseForStatus:
 
     def test_raise_for_status_disabled(self):
         """Test that 4xx doesn't raise when raise_for_status=False."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(raise_for_status=False) as s:
             r = s.get("https://httpbin.org/status/404")
@@ -766,8 +766,8 @@ class TestRaiseForStatus:
 
     def test_raise_for_status_enabled(self):
         """Test that 4xx raises when raise_for_status=True."""
-        from rnet_requests import Session
-        from rnet_requests.exceptions import HTTPError
+        from wrequests import Session
+        from wrequests.exceptions import HTTPError
 
         with Session(raise_for_status=True) as s, pytest.raises(HTTPError):
             s.get("https://httpbin.org/status/404")
@@ -775,8 +775,8 @@ class TestRaiseForStatus:
     @pytest.mark.asyncio
     async def test_raise_for_status_async(self):
         """Test raise_for_status with async session."""
-        from rnet_requests import AsyncSession
-        from rnet_requests.exceptions import HTTPError
+        from wrequests import AsyncSession
+        from wrequests.exceptions import HTTPError
 
         async with AsyncSession(raise_for_status=True) as s:
             with pytest.raises(HTTPError):
@@ -788,7 +788,7 @@ class TestDefaultEncoding:
 
     def test_default_encoding_session(self):
         """Test default_encoding in Session."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(default_encoding="latin-1") as s:
             assert s.default_encoding == "latin-1"
@@ -797,7 +797,7 @@ class TestDefaultEncoding:
 
     def test_default_encoding_callable(self):
         """Test default_encoding with callable."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         def detect_encoding(content: bytes) -> str:
             return "utf-8"
@@ -811,7 +811,7 @@ class TestDiscardCookies:
 
     def test_discard_cookies_session(self):
         """Test discard_cookies at session level."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(discard_cookies=True) as s:
             s.get("https://httpbin.org/cookies/set/foo/bar")
@@ -820,7 +820,7 @@ class TestDiscardCookies:
 
     def test_discard_cookies_request(self):
         """Test discard_cookies at request level."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             s.get(
@@ -836,7 +836,7 @@ class TestHttpVersion:
 
     def test_http_version_string(self):
         """Test http_version with string value."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         # Just test it doesn't error - we can't easily verify the HTTP version used
         with Session(http_version="HTTP/2") as s:
@@ -849,7 +849,7 @@ class TestDebugMode:
 
     def test_debug_mode(self):
         """Test Session with debug=True."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         # Just test it doesn't error
         with Session(debug=True) as s:
@@ -862,7 +862,7 @@ class TestDefaultHeaders:
 
     def test_default_headers_enabled(self):
         """Test with default_headers=True (default)."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(impersonate="chrome", default_headers=True) as s:
             r = s.get("https://httpbin.org/headers")
@@ -870,7 +870,7 @@ class TestDefaultHeaders:
 
     def test_default_headers_disabled(self):
         """Test with default_headers=False."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session(default_headers=False) as s:
             r = s.get("https://httpbin.org/headers")
@@ -882,7 +882,7 @@ class TestStreaming:
 
     def test_stream_iter_content(self):
         """Test stream=True with iter_content()."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             # Request 1KB of random bytes
@@ -895,7 +895,7 @@ class TestStreaming:
 
     def test_stream_iter_lines(self):
         """Test stream=True with iter_lines()."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             # Request 10 lines of data
@@ -908,7 +908,7 @@ class TestStreaming:
 
     def test_stream_content_property_consumes(self):
         """Test that accessing .content on stream consumes it."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/bytes/512", stream=True)
@@ -923,7 +923,7 @@ class TestStreaming:
 
     def test_non_stream_iter_content(self):
         """Test iter_content() without stream=True."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/bytes/256")
@@ -937,7 +937,7 @@ class TestStreaming:
     @pytest.mark.asyncio
     async def test_async_stream_aiter_content(self):
         """Test async stream=True with aiter_content()."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/bytes/1024", stream=True)
@@ -953,7 +953,7 @@ class TestStreaming:
     @pytest.mark.asyncio
     async def test_async_stream_aiter_lines(self):
         """Test async stream=True with aiter_lines()."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/stream/10", stream=True)
@@ -969,7 +969,7 @@ class TestStreaming:
     @pytest.mark.asyncio
     async def test_async_stream_atext(self):
         """Test async atext() method for streaming."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/get", stream=True)
@@ -981,7 +981,7 @@ class TestStreaming:
     @pytest.mark.asyncio
     async def test_async_stream_acontent(self):
         """Test async acontent() method for streaming."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/bytes/256", stream=True)
@@ -992,7 +992,7 @@ class TestStreaming:
 
     def test_stream_close(self):
         """Test close() on streaming response."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             r = s.get("https://httpbin.org/bytes/1024", stream=True)
@@ -1004,7 +1004,7 @@ class TestStreaming:
 
     def test_stream_context_manager(self):
         """Test streaming response as context manager."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s, s.get("https://httpbin.org/bytes/512", stream=True) as r:
             assert r.status_code == 200

@@ -1,5 +1,5 @@
 """
-rnet_requests.base
+wrequests.base
 ~~~~~~~~~~~~~~~~~~
 
 This module provides base classes and shared logic for Session classes.
@@ -28,7 +28,7 @@ from wreq import (
     Proxy,
     Version,
 )
-from wreq import Multipart as RnetMultipart
+from wreq import Multipart as WreqMultipart
 from wreq.redirect import Policy
 
 from .cookies import Cookies
@@ -150,7 +150,7 @@ def resolve_proxies(
     return None
 
 
-def build_rnet_multipart(files: dict[str, Any]) -> RnetMultipart:
+def build_wreq_multipart(files: dict[str, Any]) -> WreqMultipart:
     """Build a wreq Multipart from a files dictionary."""
     parts = []
     for name, file_info in files.items():
@@ -174,7 +174,7 @@ def build_rnet_multipart(files: dict[str, Any]) -> RnetMultipart:
                 parts.append(Part(name, content, filename=filename))
             else:
                 parts.append(Part(name, content))
-    return RnetMultipart(*parts)
+    return WreqMultipart(*parts)
 
 
 def convert_headers_dict(headers: Any) -> dict[str, str]:
@@ -452,7 +452,7 @@ class SessionBase:
         """Prepare a request and build wreq keyword arguments.
 
         Returns:
-            Tuple of (PreparedRequest, rnet_kwargs dict)
+            Tuple of (PreparedRequest, wreq_kwargs dict)
         """
         if self._closed:
             raise SessionClosed("Session has been closed")
@@ -504,19 +504,19 @@ class SessionBase:
                 merged_cookies.update(cookies)
 
         # Build wreq request keyword arguments.
-        rnet_kwargs: dict[str, Any] = {}
+        wreq_kwargs: dict[str, Any] = {}
 
         # Headers
         if merged_headers:
-            rnet_kwargs["headers"] = merged_headers
+            wreq_kwargs["headers"] = merged_headers
 
         # Cookies
         if merged_cookies:
-            rnet_kwargs["cookies"] = merged_cookies
+            wreq_kwargs["cookies"] = merged_cookies
 
         # Query params
         if merged_params:
-            rnet_kwargs["query"] = list(merged_params.items())
+            wreq_kwargs["query"] = list(merged_params.items())
 
         # Per-request proxy.
         if proxies:
@@ -527,18 +527,18 @@ class SessionBase:
                 scheme = urlparse(prep.url or "").scheme
                 proxy_url = proxies.get(scheme) or proxies.get("all")
             if proxy_url:
-                rnet_kwargs["proxy"] = Proxy.all(proxy_url)
+                wreq_kwargs["proxy"] = Proxy.all(proxy_url)
 
         # Body data
         if json is not None:
-            rnet_kwargs["json"] = json
+            wreq_kwargs["json"] = json
         elif data is not None:
             if isinstance(data, dict):
-                rnet_kwargs["form"] = list(data.items())
+                wreq_kwargs["form"] = list(data.items())
             elif isinstance(data, list):
-                rnet_kwargs["form"] = data
+                wreq_kwargs["form"] = data
             elif isinstance(data, (str, bytes)):
-                rnet_kwargs["body"] = data
+                wreq_kwargs["body"] = data
 
         # Files/multipart
         if multipart is not None:
@@ -546,49 +546,49 @@ class SessionBase:
             from .multipart import Multipart as MultipartWrapper
 
             if isinstance(multipart, MultipartWrapper):
-                rnet_kwargs["multipart"] = multipart._to_rnet_multipart()
+                wreq_kwargs["multipart"] = multipart._to_wreq_multipart()
             else:
                 # Assume it is already a wreq Multipart.
-                rnet_kwargs["multipart"] = multipart
+                wreq_kwargs["multipart"] = multipart
         elif files:
-            rnet_kwargs["multipart"] = build_rnet_multipart(files)
+            wreq_kwargs["multipart"] = build_wreq_multipart(files)
 
         # Timeout
         effective_timeout = timeout if timeout is not None else self._timeout
         if effective_timeout is not None:
             if isinstance(effective_timeout, tuple):
                 # wreq uses timedelta for connect and read timeouts.
-                rnet_kwargs["timeout"] = timedelta(seconds=effective_timeout[0])
-                rnet_kwargs["read_timeout"] = timedelta(seconds=effective_timeout[1])
+                wreq_kwargs["timeout"] = timedelta(seconds=effective_timeout[0])
+                wreq_kwargs["read_timeout"] = timedelta(seconds=effective_timeout[1])
             else:
-                rnet_kwargs["timeout"] = timedelta(seconds=effective_timeout)
+                wreq_kwargs["timeout"] = timedelta(seconds=effective_timeout)
 
         # Redirects
         effective_redirects = (
             allow_redirects if allow_redirects is not None else self._allow_redirects
         )
-        rnet_kwargs["redirect"] = (
+        wreq_kwargs["redirect"] = (
             Policy.limited(self._max_redirects)
             if effective_redirects
             else Policy.none()
         )
 
         # Request-level options in wreq 0.12.
-        rnet_kwargs["default_headers"] = self._default_headers
+        wreq_kwargs["default_headers"] = self._default_headers
         if self._http_version is not None:
-            rnet_kwargs["version"] = self._http_version
+            wreq_kwargs["version"] = self._http_version
 
         # Auth
         effective_auth = auth or self.auth
         if effective_auth:
             if isinstance(effective_auth, tuple):
-                rnet_kwargs["basic_auth"] = effective_auth
+                wreq_kwargs["basic_auth"] = effective_auth
             else:
-                rnet_kwargs["auth"] = effective_auth
+                wreq_kwargs["auth"] = effective_auth
 
-        return prep, rnet_kwargs
+        return prep, wreq_kwargs
 
-    def _get_rnet_method(self, method: str) -> tuple[Any, Any]:
+    def _get_wreq_method(self, method: str) -> tuple[Any, Any]:
         """Get the wreq method to call.
 
         Returns:
@@ -596,16 +596,16 @@ class SessionBase:
             If method_func is None, use generic request with method_enum
         """
         method_lower = method.lower()
-        rnet_method = getattr(self._client, method_lower, None)
+        wreq_method = getattr(self._client, method_lower, None)
 
-        if rnet_method is None:
+        if wreq_method is None:
             method_enum = getattr(Method, method.upper())
             return None, method_enum
-        return rnet_method, None
+        return wreq_method, None
 
     def _build_response(
         self,
-        rnet_resp: Any,
+        wreq_resp: Any,
         prep: PreparedRequest,
         content: bytes,
         streamer: Any,
@@ -620,15 +620,15 @@ class SessionBase:
         """
         # Read response metadata
         # wreq status is a StatusCode object, use .as_int() to get an int.
-        status = rnet_resp.status.as_int()
-        url_final = rnet_resp.url
-        encoding = getattr(rnet_resp, "encoding", None) or "utf-8"
+        status = wreq_resp.status.as_int()
+        url_final = wreq_resp.url
+        encoding = getattr(wreq_resp, "encoding", None) or "utf-8"
 
         # Get headers
-        headers_dict = convert_headers_dict(rnet_resp.headers)
+        headers_dict = convert_headers_dict(wreq_resp.headers)
 
         # Get cookies from response
-        cookies_list = list(rnet_resp.cookies)
+        cookies_list = list(wreq_resp.cookies)
 
         # Determine encoding
         effective_encoding = default_encoding or self.default_encoding
@@ -645,7 +645,7 @@ class SessionBase:
         response._content_consumed = not stream
         response._is_stream = stream
         response._streamer = streamer
-        response._rnet_response = rnet_resp
+        response._wreq_response = wreq_resp
         response.status_code = status
         response.url = url_final
         response.encoding = final_encoding
@@ -679,8 +679,8 @@ class SessionBase:
 
         # Populate redirect history from the wreq response.
         response.history = []
-        if hasattr(rnet_resp, "history") and rnet_resp.history:
-            for hist in rnet_resp.history:
+        if hasattr(wreq_resp, "history") and wreq_resp.history:
+            for hist in wreq_resp.history:
                 response.history.append(build_history_response(hist))
 
         # Update session cookies from response cookies (unless discarding)

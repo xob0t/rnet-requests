@@ -1,14 +1,13 @@
 """
-rnet_requests.async_session
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+wrequests.sessions
+~~~~~~~~~~~~~~~~~~~~~~
 
-This module provides an AsyncSession object for async HTTP requests,
+This module provides a Session object that manages settings across requests,
 providing a familiar requests-like interface while using wreq as the backend.
 """
 
 from __future__ import annotations
 
-import asyncio
 import time
 from collections.abc import Callable
 from typing import (
@@ -16,8 +15,8 @@ from typing import (
     Any,
 )
 
-from wreq import Client as RnetAsyncClient
 from wreq import Proxy, Version
+from wreq.blocking import Client as BlockingClient
 
 from .base import (
     DEFAULT_MAX_REDIRECTS,
@@ -36,48 +35,52 @@ from .base import (
 )
 from .exceptions import (
     HTTPError,
-    convert_rnet_exception,
+    convert_wreq_exception,
 )
 from .impersonate import (
     Emulation,
     EmulationOption,
     EmulationOS,
 )
-from .models import Response
+from .models import PreparedRequest, Response
 
 if TYPE_CHECKING:
     from .multipart import Multipart
-    from .websockets import AsyncWebSocket
 
 
-class AsyncSession(SessionBase):
-    """An async requests-compatible Session class backed by wreq.
+class Session(SessionBase):
+    """A requests-compatible Session class backed by wreq.
 
     Provides cookie persistence, connection-pooling, and configuration.
 
     Basic Usage::
 
-      >>> import asyncio
-      >>> import rnet_requests
-      >>> async def main():
-      ...     async with rnet_requests.AsyncSession() as s:
-      ...         r = await s.get('https://httpbin.org/get')
-      ...         print(r.status_code)
-      >>> asyncio.run(main())
+      >>> import wrequests as requests
+      >>> s = requests.Session()
+      >>> s.get('https://httpbin.org/get')
+      <Response [200]>
 
     With browser impersonation::
 
-      >>> async with rnet_requests.AsyncSession(impersonate='chrome') as s:
-      ...     r = await s.get('https://tls.peet.ws/api/all')
+      >>> s = requests.Session(impersonate='chrome')
+      >>> s.get('https://tls.peet.ws/api/all')
+      <Response [200]>
+
+    Or with a custom wreq Client::
+
+      >>> from wreq.blocking import Client
+      >>> from wreq import Emulation
+      >>> client = Client(emulation=Emulation.Firefox139)
+      >>> s = requests.Session(client=client)
     """
 
-    _client: RnetAsyncClient
+    _client: BlockingClient
 
     def __init__(
         self,
         impersonate: str | Emulation | EmulationOption | None = None,
         impersonate_os: str | EmulationOS | None = None,
-        client: RnetAsyncClient | None = None,
+        client: BlockingClient | None = None,
         # Client options
         timeout: float | tuple[float, float] | None = None,
         verify: bool | None = None,
@@ -106,13 +109,13 @@ class AsyncSession(SessionBase):
         raise_for_status: bool = False,
         **kwargs: Any,
     ):
-        """Initialize an AsyncSession.
+        """Initialize a Session.
 
         :param impersonate: Browser to impersonate. Can be a string like 'chrome',
             'firefox', 'safari', or a wreq Profile value.
         :param impersonate_os: OS to impersonate. Can be 'windows', 'macos',
             'linux', 'android', 'ios', or a wreq Platform value.
-        :param client: An existing wreq Client to use.
+        :param client: An existing wreq blocking Client to use.
         :param timeout: Default timeout for requests in seconds, or tuple of
             (connect_timeout, read_timeout).
         :param verify: Whether to verify SSL certificates.
@@ -197,22 +200,22 @@ class AsyncSession(SessionBase):
                 raise_for_status=raise_for_status,
                 extra_kwargs=kwargs,
             )
-            # Create the wreq async client
-            self._client = RnetAsyncClient(**client_kwargs)
+            # Create the wreq client
+            self._client = BlockingClient(**client_kwargs)
 
-    async def __aenter__(self) -> AsyncSession:
+    def __enter__(self) -> Session:
         return self
 
-    async def __aexit__(self, *args: Any) -> None:
-        await self.close()
+    def __exit__(self, *args: Any) -> None:
+        self.close()
 
-    async def close(self) -> None:
-        """Close the session."""
+    def close(self) -> None:
+        """Closes all adapters and as such the session."""
         if not self._closed:
             self._client.close()
         self._closed = True
 
-    async def request(
+    def request(
         self,
         method: str,
         url: str,
@@ -235,7 +238,7 @@ class AsyncSession(SessionBase):
         default_encoding: str | Callable[[bytes], str] | None = None,
         discard_cookies: bool | None = None,
     ) -> Response:
-        """Sends an async request.
+        """Constructs a :class:`Request <Request>`, prepares it and sends it.
 
         :param method: method for the new :class:`Request` object.
         :param url: URL for the new :class:`Request` object.
@@ -263,6 +266,7 @@ class AsyncSession(SessionBase):
         :param stream: (optional) Whether to immediately download the response
             content.
         :param cert: (optional) SSL client certificate.
+        :param multipart: (optional) Multipart form data to send.
         :param referer: (optional) Shortcut for setting Referer header.
         :param default_encoding: (optional) Override session default encoding.
         :param discard_cookies: (optional) Don't store cookies from this response.
@@ -274,7 +278,7 @@ class AsyncSession(SessionBase):
 
         for attempt in range(strategy.count + 1):
             try:
-                return await self._request_once(
+                return self._request_once(
                     method=method,
                     url=url,
                     params=params,
@@ -302,14 +306,14 @@ class AsyncSession(SessionBase):
                     raise
                 delay = self._retry_delay(attempt + 1)
                 if delay:
-                    await asyncio.sleep(delay)
+                    time.sleep(delay)
 
         # Should not reach here, but just in case
         if last_exception:
             raise last_exception
         raise RuntimeError("Unexpected retry loop exit")
 
-    async def _request_once(
+    def _request_once(
         self,
         method: str,
         url: str,
@@ -332,20 +336,18 @@ class AsyncSession(SessionBase):
         default_encoding: str | Callable[[bytes], str] | None = None,
         discard_cookies: bool | None = None,
     ) -> Response:
-        """Execute a single async request without retries."""
+        """Execute a single request without retries."""
         if verify is not None and verify != self._verify:
             raise ValueError(
-                "wreq configures TLS verification per client; "
-                "set verify on AsyncSession"
+                "wreq configures TLS verification per client; set verify on Session"
             )
         if cert is not None and cert != self._cert:
             raise ValueError(
-                "wreq configures client certificates per client; "
-                "set cert on AsyncSession"
+                "wreq configures client certificates per client; set cert on Session"
             )
 
         # Prepare request kwargs using base class method
-        prep, rnet_kwargs = self._prepare_request_kwargs(
+        prep, wreq_kwargs = self._prepare_request_kwargs(
             method=method,
             url=url,
             params=params,
@@ -362,35 +364,33 @@ class AsyncSession(SessionBase):
             referer=referer,
         )
 
-        # Make the async request
+        # Make the request
         try:
             start_time = time.perf_counter()
 
-            rnet_method, method_enum = self._get_rnet_method(method)
+            wreq_method, method_enum = self._get_wreq_method(method)
             if prep.url is None:
                 raise ValueError("Prepared request has no URL")
 
-            if rnet_method is None:
+            if wreq_method is None:
                 # Use the generic request method
-                rnet_resp = await self._client.request(
-                    method_enum, prep.url, **rnet_kwargs
-                )
+                wreq_resp = self._client.request(method_enum, prep.url, **wreq_kwargs)
             else:
-                rnet_resp = await rnet_method(prep.url, **rnet_kwargs)
+                wreq_resp = wreq_method(prep.url, **wreq_kwargs)
 
             elapsed_time = time.perf_counter() - start_time
 
             # Handle streaming vs non-streaming
             if stream:
                 content = b""
-                streamer = rnet_resp.stream()
+                streamer = wreq_resp.stream()
             else:
-                content = await rnet_resp.bytes()
+                content = wreq_resp.bytes()
                 streamer = None
 
             # Build response using base class method
             return self._build_response(
-                rnet_resp=rnet_resp,
+                wreq_resp=wreq_resp,
                 prep=prep,
                 content=content,
                 streamer=streamer,
@@ -404,42 +404,42 @@ class AsyncSession(SessionBase):
             # Re-raise HTTPError as-is (from raise_for_status)
             raise
         except Exception as e:
-            raise convert_rnet_exception(e) from e
+            raise convert_wreq_exception(e) from e
 
-    async def get(self, url: str, **kwargs: Any) -> Response:
-        """Sends an async GET request. Returns :class:`Response` object.
-
-        :param url: URL for the new :class:`Request` object.
-        :param \\*\\*kwargs: Optional arguments that ``request`` takes.
-        :rtype: requests.Response
-        """
-        kwargs.setdefault("allow_redirects", True)
-        return await self.request("GET", url, **kwargs)
-
-    async def options(self, url: str, **kwargs: Any) -> Response:
-        """Sends an async OPTIONS request. Returns :class:`Response` object.
+    def get(self, url: str, **kwargs: Any) -> Response:
+        """Sends a GET request. Returns :class:`Response` object.
 
         :param url: URL for the new :class:`Request` object.
         :param \\*\\*kwargs: Optional arguments that ``request`` takes.
         :rtype: requests.Response
         """
         kwargs.setdefault("allow_redirects", True)
-        return await self.request("OPTIONS", url, **kwargs)
+        return self.request("GET", url, **kwargs)
 
-    async def head(self, url: str, **kwargs: Any) -> Response:
-        """Sends an async HEAD request. Returns :class:`Response` object.
+    def options(self, url: str, **kwargs: Any) -> Response:
+        """Sends an OPTIONS request. Returns :class:`Response` object.
+
+        :param url: URL for the new :class:`Request` object.
+        :param \\*\\*kwargs: Optional arguments that ``request`` takes.
+        :rtype: requests.Response
+        """
+        kwargs.setdefault("allow_redirects", True)
+        return self.request("OPTIONS", url, **kwargs)
+
+    def head(self, url: str, **kwargs: Any) -> Response:
+        """Sends a HEAD request. Returns :class:`Response` object.
 
         :param url: URL for the new :class:`Request` object.
         :param \\*\\*kwargs: Optional arguments that ``request`` takes.
         :rtype: requests.Response
         """
         kwargs.setdefault("allow_redirects", False)
-        return await self.request("HEAD", url, **kwargs)
+        return self.request("HEAD", url, **kwargs)
 
-    async def post(
+    def post(
         self, url: str, data: Any = None, json: Any = None, **kwargs: Any
     ) -> Response:
-        """Sends an async POST request. Returns :class:`Response` object.
+        """Sends a POST request. Returns :class:`Response` object.
 
         :param url: URL for the new :class:`Request` object.
         :param data: (optional) Dictionary, list of tuples, bytes, or file-like
@@ -448,21 +448,10 @@ class AsyncSession(SessionBase):
         :param \\*\\*kwargs: Optional arguments that ``request`` takes.
         :rtype: requests.Response
         """
-        return await self.request("POST", url, data=data, json=json, **kwargs)
+        return self.request("POST", url, data=data, json=json, **kwargs)
 
-    async def put(self, url: str, data: Any = None, **kwargs: Any) -> Response:
-        """Sends an async PUT request. Returns :class:`Response` object.
-
-        :param url: URL for the new :class:`Request` object.
-        :param data: (optional) Dictionary, list of tuples, bytes, or file-like
-            object to send in the body of the :class:`Request`.
-        :param \\*\\*kwargs: Optional arguments that ``request`` takes.
-        :rtype: requests.Response
-        """
-        return await self.request("PUT", url, data=data, **kwargs)
-
-    async def patch(self, url: str, data: Any = None, **kwargs: Any) -> Response:
-        """Sends an async PATCH request. Returns :class:`Response` object.
+    def put(self, url: str, data: Any = None, **kwargs: Any) -> Response:
+        """Sends a PUT request. Returns :class:`Response` object.
 
         :param url: URL for the new :class:`Request` object.
         :param data: (optional) Dictionary, list of tuples, bytes, or file-like
@@ -470,86 +459,58 @@ class AsyncSession(SessionBase):
         :param \\*\\*kwargs: Optional arguments that ``request`` takes.
         :rtype: requests.Response
         """
-        return await self.request("PATCH", url, data=data, **kwargs)
+        return self.request("PUT", url, data=data, **kwargs)
 
-    async def delete(self, url: str, **kwargs: Any) -> Response:
-        """Sends an async DELETE request. Returns :class:`Response` object.
+    def patch(self, url: str, data: Any = None, **kwargs: Any) -> Response:
+        """Sends a PATCH request. Returns :class:`Response` object.
+
+        :param url: URL for the new :class:`Request` object.
+        :param data: (optional) Dictionary, list of tuples, bytes, or file-like
+            object to send in the body of the :class:`Request`.
+        :param \\*\\*kwargs: Optional arguments that ``request`` takes.
+        :rtype: requests.Response
+        """
+        return self.request("PATCH", url, data=data, **kwargs)
+
+    def delete(self, url: str, **kwargs: Any) -> Response:
+        """Sends a DELETE request. Returns :class:`Response` object.
 
         :param url: URL for the new :class:`Request` object.
         :param \\*\\*kwargs: Optional arguments that ``request`` takes.
         :rtype: requests.Response
         """
-        return await self.request("DELETE", url, **kwargs)
+        return self.request("DELETE", url, **kwargs)
 
-    async def ws_connect(
-        self,
-        url: str,
-        *,
-        autoclose: bool = True,
-        headers: dict[str, str] | None = None,
-        cookies: dict[str, str] | None = None,
-        auth: tuple[str, str] | str | None = None,
-        protocols: list[str] | None = None,
-        **kwargs: Any,
-    ) -> AsyncWebSocket:
+    def send(self, request: PreparedRequest, **kwargs: Any) -> Response:
+        """Send a given PreparedRequest.
+
+        :rtype: requests.Response
+        """
+        return self.request(
+            method=request.method or "GET",
+            url=request.url or "",
+            headers=dict(request.headers),
+            data=request.body,
+            cookies=request._cookies,
+            **kwargs,
+        )
+
+    def ws_connect(self, url: str, **kwargs: Any) -> Any:
         """Connect to a WebSocket endpoint.
 
-        Args:
-            url: The WebSocket URL (ws:// or wss://).
-            autoclose: Whether to auto-close on receiving close frame.
-            headers: Optional headers to send.
-            cookies: Optional cookies to send.
-            auth: Optional authentication (tuple of (user, pass) or bearer token).
-            protocols: Optional list of WebSocket subprotocols.
-            **kwargs: Additional arguments passed to wreq's websocket method.
+        Note: Synchronous WebSocket is not supported in wrequests.
+        Use AsyncSession.ws_connect() instead.
 
-        Returns:
-            An AsyncWebSocket instance.
-
-        Example:
-            >>> async with session.ws_connect("wss://echo.websocket.org") as ws:
-            ...     await ws.send_str("Hello!")
-            ...     msg = await ws.recv_str()
-            ...     print(msg)
+        Raises:
+            NotImplementedError: Always raised. Use AsyncSession for WebSocket.
         """
-        from .websockets import AsyncWebSocket
-
-        # Merge headers
-        merged_headers = dict(self.headers)
-        if headers:
-            merged_headers.update(headers)
-
-        # Merge cookies
-        merged_cookies = dict(self.cookies)
-        if cookies:
-            merged_cookies.update(cookies)
-
-        # Build kwargs for wreq websocket
-        ws_kwargs: dict[str, Any] = {}
-
-        if merged_headers:
-            ws_kwargs["headers"] = merged_headers
-        if merged_cookies:
-            ws_kwargs["cookies"] = merged_cookies
-        if protocols:
-            ws_kwargs["protocols"] = protocols
-
-        # Handle auth
-        effective_auth = auth or self.auth
-        if effective_auth:
-            if isinstance(effective_auth, tuple):
-                ws_kwargs["basic_auth"] = effective_auth
-            else:
-                ws_kwargs["bearer_auth"] = effective_auth
-
-        # Pass through any other kwargs
-        ws_kwargs.update(kwargs)
-
-        try:
-            rnet_ws = await self._client.websocket(url, **ws_kwargs)
-            return AsyncWebSocket(rnet_ws, session=self, autoclose=autoclose)
-        except Exception as e:
-            raise convert_rnet_exception(e) from e
+        raise NotImplementedError(
+            "Synchronous WebSocket is not supported. "
+            "Use AsyncSession.ws_connect() instead:\n\n"
+            "  async with AsyncSession() as session:\n"
+            "      async with session.ws_connect(url) as ws:\n"
+            "          await ws.send_str('hello')\n"
+        )
 
     def __repr__(self) -> str:
-        return "<AsyncSession>"
+        return "<Session>"

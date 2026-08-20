@@ -1,4 +1,4 @@
-"""Async tests for rnet-requests."""
+"""Async tests for wrequests."""
 
 import pytest
 
@@ -8,7 +8,7 @@ class TestAsyncImports:
 
     def test_import_async_session(self):
         """Test importing AsyncSession class."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         assert AsyncSession is not None
 
@@ -17,7 +17,7 @@ class TestAsyncImports:
         # These should be coroutine functions
         import asyncio
 
-        from rnet_requests import (
+        from wrequests import (
             async_delete,
             async_get,
             async_head,
@@ -43,28 +43,28 @@ class TestAsyncSession:
 
     def test_async_session_creation(self):
         """Test creating an async session."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         s = AsyncSession()
         assert s is not None
 
     def test_async_session_with_impersonate_string(self):
         """Test async session with string impersonation."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         s = AsyncSession(impersonate="chrome")
         assert s is not None
 
     def test_async_session_with_impersonate_enum(self):
         """Test async session with enum impersonation."""
-        from rnet_requests import AsyncSession, Impersonate
+        from wrequests import AsyncSession, Impersonate
 
         s = AsyncSession(impersonate=Impersonate.Firefox139)
         assert s is not None
 
     def test_async_session_headers(self):
         """Test async session headers."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         s = AsyncSession(headers={"X-Custom": "value"})
         assert s.headers["x-custom"] == "value"
@@ -76,7 +76,7 @@ class TestAsyncRequests:
 
     async def test_async_simple_get(self):
         """Test a simple async GET request."""
-        from rnet_requests import async_get
+        from wrequests import async_get
 
         r = await async_get("https://httpbin.org/get")
         assert r.status_code == 200
@@ -87,7 +87,7 @@ class TestAsyncRequests:
 
     async def test_async_get_with_params(self):
         """Test async GET request with query parameters."""
-        from rnet_requests import async_get
+        from wrequests import async_get
 
         params = {"foo": "bar", "baz": "123"}
         r = await async_get("https://httpbin.org/get", params=params)
@@ -98,7 +98,7 @@ class TestAsyncRequests:
 
     async def test_async_post_json(self):
         """Test async POST request with JSON body."""
-        from rnet_requests import async_post
+        from wrequests import async_post
 
         payload = {"key": "value", "number": 42}
         r = await async_post("https://httpbin.org/post", json=payload)
@@ -108,7 +108,7 @@ class TestAsyncRequests:
 
     async def test_async_post_form_data(self):
         """Test async POST request with form data."""
-        from rnet_requests import async_post
+        from wrequests import async_post
 
         payload = {"username": "testuser", "password": "secret"}
         r = await async_post("https://httpbin.org/post", data=payload)
@@ -119,7 +119,7 @@ class TestAsyncRequests:
 
     async def test_async_custom_headers(self):
         """Test async request with custom headers."""
-        from rnet_requests import async_get
+        from wrequests import async_get
 
         headers = {"X-Custom-Header": "custom-value"}
         r = await async_get("https://httpbin.org/headers", headers=headers)
@@ -129,7 +129,7 @@ class TestAsyncRequests:
 
     async def test_async_status_codes(self):
         """Test various async status codes."""
-        from rnet_requests import HTTPError, async_get
+        from wrequests import HTTPError, async_get
 
         r = await async_get("https://httpbin.org/status/200")
         assert r.status_code == 200
@@ -149,7 +149,7 @@ class TestAsyncSessionRequests:
 
     async def test_async_session_basic(self):
         """Test basic async session usage."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             r = await s.get("https://httpbin.org/get")
@@ -157,7 +157,7 @@ class TestAsyncSessionRequests:
 
     async def test_async_session_cookies(self):
         """Test async session cookie persistence."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as s:
             # Set a cookie
@@ -170,7 +170,7 @@ class TestAsyncSessionRequests:
 
     async def test_async_session_headers(self):
         """Test async session default headers."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(headers={"X-Session-Header": "session-value"}) as s:
             r = await s.get("https://httpbin.org/headers")
@@ -184,7 +184,7 @@ class TestAsyncImpersonation:
 
     async def test_async_chrome_impersonation(self):
         """Test async Chrome impersonation."""
-        from rnet_requests import async_get
+        from wrequests import async_get
 
         r = await async_get("https://tls.peet.ws/api/all", impersonate="chrome")
         assert r.status_code == 200
@@ -196,7 +196,7 @@ class TestAsyncImpersonation:
 
     async def test_async_firefox_impersonation(self):
         """Test async Firefox impersonation."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(impersonate="firefox") as s:
             r = await s.get("https://tls.peet.ws/api/all")
@@ -208,7 +208,7 @@ class TestAsyncImpersonation:
         """Test async impersonation with enum."""
         from wreq import Emulation
 
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(impersonate=Emulation.Safari18) as s:
             r = await s.get("https://tls.peet.ws/api/all")

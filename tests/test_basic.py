@@ -1,4 +1,4 @@
-"""Basic tests for rnet-requests."""
+"""Basic tests for wrequests."""
 
 import pytest
 
@@ -8,13 +8,13 @@ class TestImports:
 
     def test_import_module(self):
         """Test importing the main module."""
-        import rnet_requests
+        import wrequests
 
-        assert rnet_requests.__version__ == "0.1.0"
+        assert wrequests.__version__ == "0.1.0"
 
     def test_import_api_functions(self):
         """Test importing API functions."""
-        from rnet_requests import delete, get, head, options, patch, post, put, request
+        from wrequests import delete, get, head, options, patch, post, put, request
 
         assert callable(get)
         assert callable(post)
@@ -27,19 +27,19 @@ class TestImports:
 
     def test_import_session(self):
         """Test importing Session class."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         assert Session is not None
 
     def test_import_response(self):
         """Test importing Response class."""
-        from rnet_requests import Response
+        from wrequests import Response
 
         assert Response is not None
 
     def test_import_exceptions(self):
         """Test importing exceptions."""
-        from rnet_requests import (
+        from wrequests import (
             ConnectionError,
             HTTPError,
             RequestException,
@@ -52,7 +52,7 @@ class TestImports:
 
     def test_import_impersonate(self):
         """Test importing the backend impersonation classes."""
-        from rnet_requests import Impersonate, ImpersonateOS
+        from wrequests import Impersonate, ImpersonateOS
 
         assert Impersonate.Chrome137 is not None
         assert ImpersonateOS.Windows is not None
@@ -63,7 +63,7 @@ class TestCaseInsensitiveDict:
 
     def test_case_insensitive_get(self):
         """Test case-insensitive access."""
-        from rnet_requests.structures import CaseInsensitiveDict
+        from wrequests.structures import CaseInsensitiveDict
 
         d = CaseInsensitiveDict({"Content-Type": "application/json"})
         assert d["content-type"] == "application/json"
@@ -72,7 +72,7 @@ class TestCaseInsensitiveDict:
 
     def test_case_insensitive_set(self):
         """Test case-insensitive setting."""
-        from rnet_requests.structures import CaseInsensitiveDict
+        from wrequests.structures import CaseInsensitiveDict
 
         d = CaseInsensitiveDict()
         d["Content-Type"] = "application/json"
@@ -82,7 +82,7 @@ class TestCaseInsensitiveDict:
 
     def test_iteration(self):
         """Test that iteration returns original keys."""
-        from rnet_requests.structures import CaseInsensitiveDict
+        from wrequests.structures import CaseInsensitiveDict
 
         d = CaseInsensitiveDict({"Content-Type": "application/json"})
         keys = list(d.keys())
@@ -95,7 +95,7 @@ class TestResponse:
 
     def test_response_ok(self):
         """Test response ok property."""
-        from rnet_requests import Response
+        from wrequests import Response
 
         r = Response()
         r.status_code = 200
@@ -106,7 +106,7 @@ class TestResponse:
 
     def test_response_raise_for_status(self):
         """Test raise_for_status."""
-        from rnet_requests import HTTPError, Response
+        from wrequests import HTTPError, Response
 
         r = Response()
         r.status_code = 200
@@ -120,7 +120,7 @@ class TestResponse:
 
     def test_response_json(self):
         """Test JSON parsing."""
-        from rnet_requests import Response
+        from wrequests import Response
 
         r = Response()
         r._content = b'{"key": "value"}'
@@ -128,7 +128,7 @@ class TestResponse:
 
     def test_response_text(self):
         """Test text content."""
-        from rnet_requests import Response
+        from wrequests import Response
 
         r = Response()
         r._content = b"Hello World"
@@ -141,35 +141,35 @@ class TestSession:
 
     def test_session_creation(self):
         """Test creating a session."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         s = Session()
         assert s is not None
 
     def test_session_with_impersonate_string(self):
         """Test session with string impersonation."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         s = Session(impersonate="chrome")
         assert s is not None
 
     def test_session_with_impersonate_enum(self):
         """Test session with enum impersonation."""
-        from rnet_requests import Impersonate, Session
+        from wrequests import Impersonate, Session
 
         s = Session(impersonate=Impersonate.Firefox139)
         assert s is not None
 
     def test_session_headers(self):
         """Test session headers."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         s = Session(headers={"X-Custom": "value"})
         assert s.headers["x-custom"] == "value"
 
     def test_session_context_manager(self):
         """Test session as context manager."""
-        from rnet_requests import Session
+        from wrequests import Session
 
         with Session() as s:
             assert s is not None
@@ -180,7 +180,7 @@ class TestPreparedRequest:
 
     def test_prepare_url_with_params(self):
         """Test URL preparation with params."""
-        from rnet_requests import Request
+        from wrequests import Request
 
         req = Request("GET", "https://example.com/path", params={"a": "1", "b": "2"})
         prep = req.prepare()
@@ -189,7 +189,7 @@ class TestPreparedRequest:
 
     def test_prepare_method(self):
         """Test method preparation."""
-        from rnet_requests import Request
+        from wrequests import Request
 
         req = Request("get", "https://example.com")
         prep = req.prepare()
@@ -197,7 +197,7 @@ class TestPreparedRequest:
 
     def test_prepare_json_body(self):
         """Test JSON body preparation."""
-        from rnet_requests import Request
+        from wrequests import Request
 
         req = Request("POST", "https://example.com", json={"key": "value"})
         prep = req.prepare()

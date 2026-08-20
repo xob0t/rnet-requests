@@ -1,10 +1,10 @@
-# rnet-requests
+# wrequests
 
 > [!WARNING]
 > This project is a proof of concept. It is not a production-ready or complete
 > drop-in replacement for `requests` or `curl_cffi`.
 
-`rnet-requests` makes it convenient to try
+`wrequests` makes it convenient to try
 [wreq](https://github.com/0x676e67/wreq-python) in code that already uses a
 `requests`-style or `curl_cffi`-style API. The small compatibility layer lets you
 test wreq with fewer code changes before deciding whether to integrate wreq
@@ -26,21 +26,21 @@ backend in production. Test the behavior your application relies on.
 ## Install
 
 ```bash
-pip install https://github.com/xob0t/rnet-requests/archive/refs/heads/main.zip
+pip install https://github.com/xob0t/wrequests/archive/refs/heads/main.zip
 ```
 
 Or clone and install locally:
 
 ```bash
-git clone https://github.com/xob0t/rnet-requests.git
-cd rnet-requests
+git clone https://github.com/xob0t/wrequests.git
+cd wrequests
 pip install -e .
 ```
 
 ## Usage
 
 ```python
-import rnet_requests as requests
+import wrequests as requests
 
 # Works like requests
 r = requests.get('https://httpbin.org/get')
@@ -60,7 +60,7 @@ with requests.Session(impersonate='chrome') as s:
 
 ```python
 import asyncio
-import rnet_requests as requests
+import wrequests as requests
 
 async def main():
     r = await requests.async_get('https://httpbin.org/get')
@@ -78,7 +78,7 @@ One reason to try wreq is to compare its browser fingerprint emulation against
 your current HTTP backend:
 
 ```python
-import rnet_requests as requests
+import wrequests as requests
 
 # Simple: just pass a browser name
 r = requests.get('https://tls.peet.ws/api/all', impersonate='chrome')
@@ -124,7 +124,7 @@ async with requests.AsyncSession() as s:
 The POC implements several common `curl_cffi` patterns:
 
 ```python
-from rnet_requests import Session, Headers, Cookies, Multipart
+from wrequests import Session, Headers, Cookies, Multipart
 
 # base_url
 with Session(base_url='https://api.example.com/v1') as s:
@@ -139,7 +139,7 @@ with Session(proxy='http://localhost:8080') as s:
     r = s.get('https://httpbin.org/ip')
 
 # retry
-from rnet_requests import RetryStrategy
+from wrequests import RetryStrategy
 with Session(retry=RetryStrategy(count=3, backoff='exponential')) as s:
     r = s.get('https://httpbin.org/get')
 
@@ -200,7 +200,7 @@ r.history       # redirect history
 ## Exceptions
 
 ```python
-from rnet_requests import RequestException, ConnectionError, Timeout, HTTPError
+from wrequests import RequestException, ConnectionError, Timeout, HTTPError
 
 try:
     r = requests.get('https://httpbin.org/status/500')
@@ -218,14 +218,14 @@ From requests:
 
 ```python
 # import requests
-import rnet_requests as requests
+import wrequests as requests
 ```
 
 From curl_cffi:
 
 ```python
 # from curl_cffi.requests import Session
-from rnet_requests import Session
+from wrequests import Session
 ```
 
 ## Known limitations

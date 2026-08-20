@@ -1,4 +1,4 @@
-"""WebSocket tests for rnet-requests."""
+"""WebSocket tests for wrequests."""
 
 import pytest
 
@@ -12,7 +12,7 @@ class TestWebSocketImports:
 
     async def test_import_websocket_classes(self):
         """Test importing WebSocket classes."""
-        from rnet_requests import (
+        from wrequests import (
             AsyncWebSocket,
             WebSocketClosed,
             WebSocketError,
@@ -28,7 +28,7 @@ class TestWebSocketImports:
 
     async def test_ws_close_codes(self):
         """Test WsCloseCode enum values."""
-        from rnet_requests import WsCloseCode
+        from wrequests import WsCloseCode
 
         assert WsCloseCode.OK == 1000
         assert WsCloseCode.GOING_AWAY == 1001
@@ -42,7 +42,7 @@ class TestWebSocketConnection:
 
     async def test_ws_connect_echo(self):
         """Test WebSocket connection to echo server."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -60,7 +60,7 @@ class TestWebSocketConnection:
 
     async def test_ws_send_receive_text(self):
         """Test sending and receiving text messages."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -75,7 +75,7 @@ class TestWebSocketConnection:
 
     async def test_ws_send_receive_json(self):
         """Test sending and receiving JSON messages."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -91,7 +91,7 @@ class TestWebSocketConnection:
     @pytest.mark.skip(reason="Echo server doesn't handle binary frames properly")
     async def test_ws_send_receive_binary(self):
         """Test sending and receiving binary messages."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -106,7 +106,7 @@ class TestWebSocketConnection:
 
     async def test_ws_close(self):
         """Test closing WebSocket connection."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -118,7 +118,7 @@ class TestWebSocketConnection:
 
     async def test_ws_context_manager(self):
         """Test WebSocket as async context manager."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -136,7 +136,7 @@ class TestWebSocketErrors:
 
     async def test_ws_closed_error(self):
         """Test WebSocketClosed error when sending to closed socket."""
-        from rnet_requests import AsyncSession, WebSocketClosed
+        from wrequests import AsyncSession, WebSocketClosed
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -147,7 +147,7 @@ class TestWebSocketErrors:
 
     async def test_ws_recv_on_closed(self):
         """Test receiving on closed WebSocket."""
-        from rnet_requests import AsyncSession, WebSocketClosed
+        from wrequests import AsyncSession, WebSocketClosed
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -163,7 +163,7 @@ class TestWebSocketWithSession:
 
     async def test_ws_with_headers(self):
         """Test WebSocket connection with custom headers."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws = await session.ws_connect(
@@ -179,7 +179,7 @@ class TestWebSocketWithSession:
 
     async def test_ws_with_impersonation(self):
         """Test WebSocket with browser impersonation."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession(impersonate="chrome") as session:
             ws = await session.ws_connect(WS_ECHO_URL)
@@ -192,7 +192,7 @@ class TestWebSocketWithSession:
 
     async def test_ws_multiple_connections(self):
         """Test multiple WebSocket connections from same session."""
-        from rnet_requests import AsyncSession
+        from wrequests import AsyncSession
 
         async with AsyncSession() as session:
             ws1 = await session.ws_connect(WS_ECHO_URL)

@@ -8,8 +8,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 from wreq import Emulation, Platform, Profile
 
-import rnet_requests as requests
-from rnet_requests.impersonate import create_emulation_option
+import wrequests as requests
+from wrequests.impersonate import create_emulation_option
 
 
 class _Handler(BaseHTTPRequestHandler):

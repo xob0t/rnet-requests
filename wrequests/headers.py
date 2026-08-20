@@ -1,5 +1,5 @@
 """
-rnet_requests.headers
+wrequests.headers
 ~~~~~~~~~~~~~~~~~~~~~
 
 HTTP Headers implementation compatible with curl_cffi.

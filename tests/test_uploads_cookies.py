@@ -11,7 +11,7 @@ class TestFileUploads:
 
     def test_upload_simple_file(self):
         """Test uploading a simple file."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         # Create a temporary file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -33,7 +33,7 @@ class TestFileUploads:
 
     def test_upload_file_with_filename(self):
         """Test uploading a file with explicit filename."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         content = b"Test file content"
         files = {"upload": ("myfile.txt", content)}
@@ -47,7 +47,7 @@ class TestFileUploads:
 
     def test_upload_file_with_content_type(self):
         """Test uploading a file with explicit content type."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         content = b'{"key": "value"}'
         files = {"data": ("data.json", content, "application/json")}
@@ -60,7 +60,7 @@ class TestFileUploads:
 
     def test_upload_multiple_files(self):
         """Test uploading multiple files."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         files = {
             "file1": ("first.txt", b"First file content"),
@@ -78,7 +78,7 @@ class TestFileUploads:
 
     def test_upload_binary_file(self):
         """Test uploading binary content."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         # Binary content (not valid UTF-8)
         binary_content = bytes([0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD])
@@ -89,7 +89,7 @@ class TestFileUploads:
 
     def test_upload_large_file(self):
         """Test uploading a larger file."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         # Create 1KB of data
         content = b"x" * 1024
@@ -103,7 +103,7 @@ class TestFileUploads:
 
     def test_upload_with_additional_data(self):
         """Test uploading files along with form data."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         files = {"file": ("test.txt", b"file content")}
         data = {"field1": "value1", "field2": "value2"}
@@ -115,7 +115,7 @@ class TestFileUploads:
 
     def test_upload_empty_file(self):
         """Test uploading an empty file."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         files = {"empty": ("empty.txt", b"")}
         r = requests.post("https://httpbin.org/post", files=files)
@@ -131,7 +131,7 @@ class TestCookies:
 
     def test_send_cookies_in_request(self):
         """Test sending cookies with a request."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         cookies = {"session": "abc123", "user": "testuser"}
         r = requests.get("https://httpbin.org/cookies", cookies=cookies)
@@ -143,7 +143,7 @@ class TestCookies:
 
     def test_receive_cookies_from_response(self):
         """Test receiving cookies from response."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         r = requests.get("https://httpbin.org/cookies/set/testcookie/testvalue")
 
@@ -154,7 +154,7 @@ class TestCookies:
 
     def test_session_cookie_persistence(self):
         """Test that cookies persist across session requests."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         with requests.Session() as s:
             # Set a cookie
@@ -172,7 +172,7 @@ class TestCookies:
 
     def test_session_multiple_cookies(self):
         """Test setting multiple cookies in a session."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         with requests.Session() as s:
             # Set multiple cookies
@@ -189,7 +189,7 @@ class TestCookies:
 
     def test_session_cookie_override(self):
         """Test that request cookies override session cookies."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         with requests.Session() as s:
             # Set session cookie
@@ -204,7 +204,7 @@ class TestCookies:
 
     def test_session_preset_cookies(self):
         """Test session with preset cookies."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         with requests.Session() as s:
             # Set cookies before making requests
@@ -218,7 +218,7 @@ class TestCookies:
 
     def test_cookie_with_special_characters(self):
         """Test cookies with special characters."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         # Note: Some special characters may be encoded
         cookies = {"special": "hello world"}
@@ -235,7 +235,7 @@ class TestCookies:
     )
     def test_delete_cookie(self):
         """Test that session cookies can be deleted."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         with requests.Session() as s:
             # Set a cookie
@@ -258,7 +258,7 @@ class TestAsyncFileUploads:
 
     async def test_async_upload_file(self):
         """Test async file upload."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         files = {"file": ("async_test.txt", b"Async file content")}
         r = await requests.async_post("https://httpbin.org/post", files=files)
@@ -270,7 +270,7 @@ class TestAsyncFileUploads:
 
     async def test_async_upload_multiple_files(self):
         """Test async multiple file upload."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         files = {
             "file1": ("one.txt", b"First"),
@@ -285,7 +285,7 @@ class TestAsyncFileUploads:
 
     async def test_async_session_upload(self):
         """Test file upload with async session."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         async with requests.AsyncSession() as s:
             files = {"upload": ("session_file.txt", b"Session upload")}
@@ -302,7 +302,7 @@ class TestAsyncCookies:
 
     async def test_async_send_cookies(self):
         """Test sending cookies with async request."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         cookies = {"async_cookie": "async_value"}
         r = await requests.async_get("https://httpbin.org/cookies", cookies=cookies)
@@ -313,7 +313,7 @@ class TestAsyncCookies:
 
     async def test_async_receive_cookies(self):
         """Test receiving cookies from async response."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         r = await requests.async_get(
             "https://httpbin.org/cookies/set/async_resp/value123"
@@ -325,7 +325,7 @@ class TestAsyncCookies:
 
     async def test_async_session_cookie_persistence(self):
         """Test async session cookie persistence."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         async with requests.AsyncSession() as s:
             # Set cookie
@@ -341,7 +341,7 @@ class TestAsyncCookies:
 
     async def test_async_session_multiple_cookies(self):
         """Test async session with multiple cookies."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         async with requests.AsyncSession() as s:
             await s.get("https://httpbin.org/cookies/set/a/1")
@@ -356,7 +356,7 @@ class TestAsyncCookies:
 
     async def test_async_session_preset_cookies(self):
         """Test async session with preset cookies."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         async with requests.AsyncSession() as s:
             s.cookies["preset_async"] = "preset_value"
@@ -369,7 +369,7 @@ class TestAsyncCookies:
         """Test concurrent async requests with cookies."""
         import asyncio
 
-        import rnet_requests as requests
+        import wrequests as requests
 
         async with requests.AsyncSession() as s:
             # Set a session cookie
@@ -394,7 +394,7 @@ class TestCookieEdgeCases:
 
     def test_empty_cookie_value(self):
         """Test cookie with empty value."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         cookies = {"empty": ""}
         r = requests.get("https://httpbin.org/cookies", cookies=cookies)
@@ -404,7 +404,7 @@ class TestCookieEdgeCases:
 
     def test_cookie_with_equals_sign(self):
         """Test cookie value containing equals sign."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         cookies = {"encoded": "key=value"}
         r = requests.get("https://httpbin.org/cookies", cookies=cookies)
@@ -416,7 +416,7 @@ class TestCookieEdgeCases:
 
     def test_many_cookies(self):
         """Test sending many cookies."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         cookies = {f"cookie{i}": f"value{i}" for i in range(20)}
         r = requests.get("https://httpbin.org/cookies", cookies=cookies)
@@ -427,7 +427,7 @@ class TestCookieEdgeCases:
 
     def test_session_cookies_isolated(self):
         """Test that different sessions have isolated cookies."""
-        import rnet_requests as requests
+        import wrequests as requests
 
         with requests.Session() as s1:
             s1.cookies["session1"] = "value1"

@@ -1,5 +1,5 @@
 """
-rnet_requests.cookies
+wrequests.cookies
 ~~~~~~~~~~~~~~~~~~~~~
 
 HTTP Cookies implementation compatible with curl_cffi.
